@@ -1,6 +1,7 @@
-# Stage 0 implementation plan
+# Delivery plan
 
-This repository implements only PRD Stage 0: the deployable project skeleton.
+Stage 0 is complete. Stage 1 now provides the private workspace MVP while
+preserving the same lightweight deployment architecture.
 
 ## Architecture
 
@@ -19,7 +20,18 @@ This repository implements only PRD Stage 0: the deployable project skeleton.
 4. Add environment examples, backup/restore scripts, and deployment/upgrade documentation.
 5. Run Django tests, system checks, Compose validation, image build/startup checks when Docker is available, and review the Stage 0 boundary.
 
+## Stage 1 delivered
+
+- Administrator-managed accounts, username/email login, password changes, and
+  database-backed login throttling.
+- User profiles.
+- Seven private research-object types with Markdown rendering and sanitization.
+- Personal tags, favorites, archive, soft deletion, autosave, and Markdown export.
+- Permission-aware search and protected attachment upload/download.
+- Backend ownership filtering for list, detail, edit, export, autosave, search,
+  and attachment access.
+
 ## Explicitly deferred
 
-Research objects, profiles, tags, attachments, search, sharing, projects, comments, imports, and public publication snapshots belong to later PRD stages and are intentionally absent.
-
+Sharing, projects, comments, paper metadata import, object relations, and public
+publication snapshots belong to later PRD stages and remain intentionally absent.

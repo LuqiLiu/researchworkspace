@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}登录 · Research Workspace Lite{% endblock %}
+{% block content %}
+<main class="narrow card">
+    <h1>登录</h1>
+    {% if rate_limited %}<p class="message error">失败次数过多，请 15 分钟后再试。</p>{% endif %}
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">登录</button>
+    </form>
+    <p class="meta">账号由系统管理员创建，不开放自助注册。</p>
+</main>
+{% endblock %}

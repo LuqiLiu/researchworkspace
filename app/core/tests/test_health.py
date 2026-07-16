@@ -16,10 +16,9 @@ class HealthViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok", "database": "ok"})
 
-    def test_home_uses_stage_zero_template(self):
+    def test_home_links_to_login(self):
         response = self.client.get(reverse("core:home"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Research Workspace Lite")
-        self.assertContains(response, "Stage 0")
-
+        self.assertContains(response, "登录工作台")

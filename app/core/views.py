@@ -1,10 +1,12 @@
 from django.db import connection
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 
 
 def home(request):
+    if request.user.is_authenticated:
+        return redirect("research_objects:list")
     return render(request, "core/home.html")
 
 
@@ -26,4 +28,3 @@ def readiness(request):
         )
 
     return JsonResponse({"status": "ok", "database": "ok"})
-

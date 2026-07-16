@@ -1,6 +1,6 @@
 # Research Workspace Lite
 
-Stage 0 project skeleton for a private, lightweight research workspace. The repository currently contains infrastructure and framework foundations only; product features begin in Stage 1.
+Private, lightweight research workspace. Stage 1 adds the first usable private workspace on top of the Stage 0 deployment skeleton.
 
 ## Stack
 
@@ -60,6 +60,15 @@ The web entrypoint applies migrations and collects static files before starting 
 
 Docker uses the readiness endpoint for the `web` service health check.
 
+## Stage 1 workspace
+
+- Administrator-created accounts, username/email login, password changes, and basic login throttling
+- User profiles
+- Seven research-object types with Markdown source storage
+- Private-by-default ownership enforced in queryset and download views
+- Personal tags, favorites, archive, soft deletion, Markdown export, and permission-aware search
+- Private attachments stored outside Caddy's public static routes
+
 ## Tests and checks
 
 Tests use an isolated SQLite database so framework checks and unit tests do not require a running PostgreSQL container:
@@ -110,4 +119,3 @@ The production topology is intentionally small:
 - PostgreSQL capped at 30 connections with conservative memory settings
 - Caddy as the only public-facing service
 - No Redis, Celery, MinIO, Elasticsearch, Kubernetes, local model, or Node.js production runtime
-

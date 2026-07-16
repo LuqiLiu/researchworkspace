@@ -35,7 +35,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "app.accounts.apps.AccountsConfig",
     "app.core.apps.CoreConfig",
+    "app.research_objects.apps.ResearchObjectsConfig",
 ]
 
 MIDDLEWARE = [
@@ -96,6 +98,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    "app.accounts.backends.EmailOrUsernameBackend",
+]
+
 LANGUAGE_CODE = "zh-hans"
 TIME_ZONE = os.environ.get("DJANGO_TIME_ZONE", "Asia/Shanghai")
 USE_I18N = True
@@ -109,6 +115,9 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "var/media"))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "research_objects:list"
+LOGOUT_REDIRECT_URL = "accounts:login"
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_HTTPONLY = True
@@ -128,4 +137,3 @@ LOGGING = {
         "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO"),
     },
 }
-

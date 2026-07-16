@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}我的内容 · Research Workspace Lite{% endblock %}
+{% block content %}
+<main>
+    <div class="toolbar">
+        <div>
+            <p class="eyebrow">Private workspace</p>
+            <h1>我的内容</h1>
+        </div>
+        <a class="button" href="{% url 'research_objects:create' %}">新建</a>
+    </div>
+    <form class="card search-row" method="get">
+        <select name="type">
+            <option value="">全部类型</option>
+            {% for value, label in object_types %}
+                <option value="{{ value }}" {% if request.GET.type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <label><input type="checkbox" name="favorite" value="1" {% if request.GET.favorite == "1" %}checked{% endif %}> 只看收藏</label>
+        <label><input type="checkbox" name="archived" value="1" {% if request.GET.archived == "1" %}checked{% endif %}> 查看归档</label>
+        <button type="submit">筛选</button>
+    </form>
+    {% for object in objects %}
+        <article class="card">
+            <p class="meta">{{ object.get_object_type_display }} · 仅自己 · 更新于 {{ object.updated_at|date:"Y-m-d H:i" }}</p>
+            <h2><a href="{% url 'research_objects:detail' object.pk %}">{{ object.title }}</a></h2>
+            <p>{{ object.content_plain_text|truncatechars:180 }}</p>
+            <p class="meta">{% for tag in object.tags.all %}#{{ tag.name }} {% empty %}无标签{% endfor %}</p>
+        </article>
+    {% empty %}
+        <div class="card empty">还没有符合条件的内容。</div>
+    {% endfor %}
+</main>
+{% endblock %}

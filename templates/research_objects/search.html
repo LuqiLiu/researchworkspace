@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}搜索 · Research Workspace Lite{% endblock %}
+{% block content %}
+<main>
+    <h1>搜索</h1>
+    <form class="card search-row" method="get">
+        <input type="search" name="q" value="{{ query }}" placeholder="搜索自己的标题、正文和标签">
+        <button type="submit">搜索</button>
+    </form>
+    {% for object in objects %}
+        <article class="card">
+            <p class="meta">{{ object.get_object_type_display }} · 仅自己</p>
+            <h2><a href="{% url 'research_objects:detail' object.pk %}">{{ object.title }}</a></h2>
+            <p>{{ object.content_plain_text|truncatechars:180 }}</p>
+        </article>
+    {% empty %}
+        {% if query %}<div class="card empty">没有可访问的匹配内容。</div>{% endif %}
+    {% endfor %}
+</main>
+{% endblock %}

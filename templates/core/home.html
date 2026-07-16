@@ -5,9 +5,9 @@
     <p class="eyebrow">Research Workspace Lite</p>
     <h1>私密科研工作台</h1>
     <p class="lede">
-        Stage 0 项目骨架已就绪。当前只包含 Django、PostgreSQL、Caddy、
-        健康检查和运维基础，不包含后续阶段的科研内容或协作功能。
+        一个默认私有、按需整理的轻量科研工作台。保存 Markdown 笔记、
+        实验记录、问题与写作素材，并始终由后端权限保护。
     </p>
-    <p class="status">Stage 0 infrastructure ready</p>
+    <p><a class="button" href="{% url 'accounts:login' %}">登录工作台</a></p>
 </main>
 {% endblock %}

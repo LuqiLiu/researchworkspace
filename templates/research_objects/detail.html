@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ object.title }} · Research Workspace Lite{% endblock %}
+{% block content %}
+<main>
+    <div class="toolbar">
+        <div>
+            <p class="eyebrow">{{ object.get_object_type_display }} · 仅自己</p>
+            <h1>{{ object.title }}</h1>
+        </div>
+        <div class="inline-actions">
+            <a class="button" href="{% url 'research_objects:edit' object.pk %}">编辑</a>
+            <a class="button secondary" href="{% url 'research_objects:export' object.pk %}">导出 Markdown</a>
+        </div>
+    </div>
+    <div class="content-grid">
+        <article class="card markdown">{{ content_html|safe }}</article>
+        <aside>
+            <section class="card">
+                <h2>状态</h2>
+                <p>仅自己可见</p>
+                <div class="inline-actions">
+                    <form method="post" action="{% url 'research_objects:toggle' object.pk 'is_favorite' %}">
+                        {% csrf_token %}<button class="secondary" type="submit">{% if object.is_favorite %}取消收藏{% else %}收藏{% endif %}</button>
+                    </form>
+                    <form method="post" action="{% url 'research_objects:toggle' object.pk 'is_archived' %}">
+                        {% csrf_token %}<button class="secondary" type="submit">{% if object.is_archived %}取消归档{% else %}归档{% endif %}</button>
+                    </form>
+                </div>
+                <p class="meta">{% for tag in object.tags.all %}#{{ tag.name }} {% empty %}无标签{% endfor %}</p>
+            </section>
+            <section class="card">
+                <h2>附件</h2>
+                <ul class="attachment-list">
+                    {% for attachment in object.attachments.all %}
+                        <li><a href="{% url 'research_objects:attachment_download' attachment.pk %}">{{ attachment.original_name }}</a></li>
+                    {% empty %}<li class="meta">暂无附件</li>{% endfor %}
+                </ul>
+                <form method="post" enctype="multipart/form-data" action="{% url 'research_objects:attachment_upload' object.pk %}">
+                    {% csrf_token %}{{ attachment_form.as_p }}<button type="submit">上传</button>
+                </form>
+            </section>
+            <section class="card">
+                <form method="post" action="{% url 'research_objects:delete' object.pk %}">
+                    {% csrf_token %}<button class="danger" type="submit">软删除</button>
+                </form>
+            </section>
+        </aside>
+    </div>
+</main>
+{% endblock %}
