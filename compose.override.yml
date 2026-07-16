@@ -1,0 +1,12 @@
+services:
+  web:
+    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DJANGO_SECURE_SSL_REDIRECT: "false"
+      MIGRATE_ON_STARTUP: "true"
+    volumes:
+      - .:/app
+      - static_data:/app/var/static
+      - media_data:/app/var/media
+

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "research-workspace-lite"
+version = "0.1.0"
+description = "Lightweight private research workspace"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "Django>=5.2,<5.3",
+    "gunicorn>=23,<24",
+    "psycopg[binary]>=3.2,<3.3",
+]
+
+[project.optional-dependencies]
+dev = []
+
+[tool.setuptools.packages.find]
+include = ["app*", "config*"]
+
