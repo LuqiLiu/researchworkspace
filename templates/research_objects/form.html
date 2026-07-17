@@ -1,15 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ heading }} · Research Workspace Lite{% endblock %}
 {% block content %}
-<main class="narrow">
-    <h1>{{ heading }}</h1>
-    <p class="meta">新建内容默认仅你自己可见。正文以 Markdown 保存。</p>
-    <form method="post" class="card">
+<main class="content-narrow">
+    <div class="page-heading"><p class="kicker">Research editor</p><h1>{{ heading }}</h1><p>以 Markdown 保存源文本；新内容默认仅你自己可见。</p></div>
+    <form method="post" class="panel form-panel">
         {% csrf_token %}
+        <div class="form-section"><span class="section-index">01</span><div><h2>研究记录</h2><p class="muted">先记下来，再逐步完善。</p></div></div>
         {{ form.as_p }}
         {% if object %}<p id="autosave-status" class="meta" aria-live="polite">等待编辑</p>{% endif %}
-        <button type="submit">保存</button>
-        {% if object %}<a class="button secondary" href="{% url 'research_objects:detail' object.pk %}">取消</a>{% endif %}
+        <div class="form-actions"><button type="submit">保存记录</button>{% if object %}<a class="button secondary" href="{% url 'research_objects:detail' object.pk %}">取消</a>{% endif %}</div>
     </form>
 </main>
 {% endblock %}

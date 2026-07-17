@@ -1,13 +1,19 @@
 {% extends "base.html" %}
 
-{% block content %}
-<main>
-    <p class="eyebrow">Research Workspace Lite</p>
-    <h1>私密科研工作台</h1>
-    <p class="lede">
-        一个默认私有、按需整理的轻量科研工作台。保存 Markdown 笔记、
-        实验记录、问题与写作素材，并始终由后端权限保护。
-    </p>
-    <p><a class="button" href="{% url 'accounts:login' %}">登录工作台</a></p>
+{% block public_content %}
+<main class="hero">
+    <section>
+        <p class="kicker">Private by default · Built for research</p>
+        <h1>让研究线索，<br>自然汇聚成知识。</h1>
+        <p class="lede">保存文献、想法、实验与问题；只在你明确选择时分享。一个克制、可迁移、属于研究者自己的工作空间。</p>
+        <div class="button-group">
+            <a class="button" href="{% url 'accounts:login' %}">进入工作台</a>
+            <span class="muted">Django · Markdown · PostgreSQL</span>
+        </div>
+    </section>
+    <aside class="hero-figure" aria-hidden="true">
+        <div class="paper-stack"></div><div class="paper-stack"></div>
+        <div class="paper-stack"><p class="kicker">Research note · 042</p><div class="paper-lines"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    </aside>
 </main>
 {% endblock %}

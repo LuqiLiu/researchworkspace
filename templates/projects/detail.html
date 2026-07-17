@@ -2,9 +2,9 @@
 {% block title %}{{ project.name }} · Research Workspace Lite{% endblock %}
 {% block content %}
 <main>
-    <div class="toolbar">
+    <div class="page-heading-row">
         <div>
-            <p class="eyebrow">Project</p>
+            <p class="kicker">Research project</p>
             <h1>{{ project.name }}</h1>
         </div>
         {% if can_edit_project %}<a class="button" href="{% url 'projects:edit' project.pk %}">编辑项目</a>{% endif %}
@@ -20,7 +20,7 @@
                 </article>
             {% empty %}<div class="card empty">暂无明确共享到项目的内容。</div>{% endfor %}
         </section>
-        <aside>
+        <aside class="detail-sidebar">
             <section class="card">
                 <h2>成员</h2>
                 <p><strong>{{ project.owner.get_username }}</strong> · 所有者</p>

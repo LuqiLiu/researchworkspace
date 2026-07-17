@@ -2,15 +2,10 @@
 {% block title %}分享给我的 · Research Workspace Lite{% endblock %}
 {% block content %}
 <main>
-    <h1>分享给我的</h1>
-    {% for object in objects %}
-        <article class="card">
-            <p class="meta">{{ object.get_object_type_display }} · 来自 {{ object.owner.get_username }}</p>
-            <h2><a href="{% url 'research_objects:detail' object.pk %}">{{ object.title }}</a></h2>
-            <p>{{ object.content_plain_text|truncatechars:180 }}</p>
-        </article>
-    {% empty %}
-        <div class="card empty">目前没有成员或项目分享给你的内容。</div>
-    {% endfor %}
+    <div class="page-heading"><p class="kicker">Selective collaboration</p><h1>分享给我的</h1><p>来自成员或研究项目的明确授权内容。</p></div>
+    <section class="object-list">
+        {% for object in objects %}{% include "components/object_card.html" with object=object show_owner=True %}
+        {% empty %}<div class="panel empty"><p class="kicker">Quiet for now</p><h2>目前没有共享内容</h2><p>别人明确分享给你的内容会出现在这里。</p></div>{% endfor %}
+    </section>
 </main>
 {% endblock %}

@@ -21,4 +21,4 @@ class HealthViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Research Workspace Lite")
-        self.assertContains(response, "登录工作台")
+        self.assertContains(response, "进入工作台")

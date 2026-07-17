@@ -1,0 +1,15 @@
+<article class="research-card" data-type="{{ object.object_type }}">
+    <span class="type-glyph" aria-hidden="true">
+        {% if object.object_type == "PAPER" %}文{% elif object.object_type == "IDEA" %}想{% elif object.object_type == "EXPERIMENT" %}验{% elif object.object_type == "ISSUE" %}问{% elif object.object_type == "WRITING" %}稿{% elif object.object_type == "RESOURCE" %}索{% else %}记{% endif %}
+    </span>
+    <div>
+        <div class="card-topline">
+            <span>{{ object.get_object_type_display }}</span><span>·</span><span class="status-dot"></span><span>{{ object.get_status_display }}</span>
+            {% if show_owner %}<span>·</span><span>{{ object.owner.get_username }}</span>{% endif %}
+        </div>
+        <h2><a href="{% url 'research_objects:detail' object.pk %}">{{ object.title }}</a></h2>
+        <p class="excerpt">{{ object.content_plain_text|default:"尚未添加摘要或正文。"|truncatechars:180 }}</p>
+        <div class="tag-row">{% for tag in object.tags.all %}<span class="tag"># {{ tag.name }}</span>{% endfor %}</div>
+    </div>
+    <time class="card-date" datetime="{{ object.updated_at|date:'c' }}">{{ object.updated_at|date:"Y.m.d" }}</time>
+</article>

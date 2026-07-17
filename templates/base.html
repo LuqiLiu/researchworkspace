@@ -4,38 +4,92 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#173c3a">
     <title>{% block title %}Research Workspace Lite{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 </head>
-<body>
-    <header class="site-header">
-        <a class="brand" href="{% url 'core:home' %}">Research Workspace Lite</a>
-        {% if user.is_authenticated %}
-            <nav>
-                <a href="{% url 'research_objects:list' %}">我的内容</a>
-                <a href="{% url 'sharing:shared_with_me' %}">分享给我的</a>
-                <a href="{% url 'projects:list' %}">项目</a>
-                <a href="{% url 'research_objects:search' %}">搜索</a>
-                <a href="{% url 'accounts:profile' %}">设置</a>
-                {% if user.is_staff %}<a href="{% url 'admin:index' %}">管理</a>{% endif %}
-                <form method="post" action="{% url 'accounts:logout' %}">
-                    {% csrf_token %}
-                    <button class="link-button" type="submit">退出</button>
-                </form>
+<body class="{% if user.is_authenticated %}workspace-body{% else %}public-body{% endif %} {% block body_class %}{% endblock %}">
+{% if user.is_authenticated %}
+    <div class="app-frame">
+        <aside class="app-sidebar">
+            <a class="brand-lockup" href="{% url 'core:home' %}">
+                <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span><strong>Research</strong><small>Workspace Lite</small></span>
+            </a>
+
+            <a class="new-object-button" href="{% url 'research_objects:create' %}">
+                <span aria-hidden="true">＋</span> 新建研究记录
+            </a>
+
+            <nav class="primary-nav" aria-label="主导航">
+                <p class="nav-label">工作空间</p>
+                <a class="{% if request.resolver_match.namespace == 'research_objects' and request.resolver_match.url_name != 'search' %}active{% endif %}" href="{% url 'research_objects:list' %}">
+                    <span class="nav-icon">▤</span><span>我的内容</span>
+                </a>
+                <a class="{% if request.resolver_match.namespace == 'sharing' %}active{% endif %}" href="{% url 'sharing:shared_with_me' %}">
+                    <span class="nav-icon">⇄</span><span>分享给我的</span>
+                </a>
+                <a class="{% if request.resolver_match.namespace == 'projects' %}active{% endif %}" href="{% url 'projects:list' %}">
+                    <span class="nav-icon">◇</span><span>研究项目</span>
+                </a>
+
+                <p class="nav-label">研究工具</p>
+                <a class="{% if request.resolver_match.namespace == 'papers' %}active{% endif %}" href="{% url 'papers:import' %}">
+                    <span class="nav-icon">⌁</span><span>文献收录</span>
+                </a>
+                <a class="{% if request.resolver_match.url_name == 'search' %}active{% endif %}" href="{% url 'research_objects:search' %}">
+                    <span class="nav-icon">⌕</span><span>全局搜索</span>
+                </a>
             </nav>
-        {% endif %}
-    </header>
-    <div class="page-shell">
-        {% if messages %}
-            <div class="messages">
-                {% for message in messages %}
-                    <p class="message {{ message.tags }}">{{ message }}</p>
-                {% endfor %}
+
+            <div class="sidebar-footer">
+                <a class="user-chip" href="{% url 'accounts:profile' %}">
+                    <span class="avatar">{{ user.username|first|upper }}</span>
+                    <span><strong>{{ user.profile.display_name|default:user.username }}</strong><small>{% if user.is_staff %}系统管理员{% else %}研究成员{% endif %}</small></span>
+                </a>
+                <div class="sidebar-actions">
+                    {% if user.is_staff %}<a href="{% url 'admin:index' %}">管理</a>{% endif %}
+                    <form method="post" action="{% url 'accounts:logout' %}">
+                        {% csrf_token %}<button class="text-button" type="submit">退出</button>
+                    </form>
+                </div>
             </div>
-        {% endif %}
-        {% block content %}{% endblock %}
+        </aside>
+
+        <section class="app-stage">
+            <header class="stage-topbar">
+                <a class="mobile-brand" href="{% url 'core:home' %}">RW<span>·</span>Lite</a>
+                <form class="global-search" method="get" action="{% url 'research_objects:search' %}">
+                    <span aria-hidden="true">⌕</span>
+                    <input type="search" name="q" value="{{ request.GET.q }}" placeholder="搜索标题、正文、作者、DOI、项目…" aria-label="全局搜索">
+                    <kbd>Enter</kbd>
+                </form>
+                <a class="topbar-profile" href="{% url 'accounts:profile' %}" title="个人设置">{{ user.username|first|upper }}</a>
+            </header>
+            <div class="app-content">
+                {% if messages %}
+                    <div class="messages" aria-live="polite">
+                        {% for message in messages %}<p class="message {{ message.tags }}">{{ message }}</p>{% endfor %}
+                    </div>
+                {% endif %}
+                {% block content %}{% endblock %}
+            </div>
+        </section>
     </div>
+{% else %}
+    <div class="public-shell">
+        <header class="public-header">
+            <a class="brand-lockup" href="{% url 'core:home' %}">
+                <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span><strong>Research</strong><small>Workspace Lite</small></span>
+            </a>
+            <a class="button secondary" href="{% url 'accounts:login' %}">登录</a>
+        </header>
+        {% if messages %}<div class="messages">{% for message in messages %}<p class="message {{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
+        {% block public_content %}{% block content_public_fallback %}{% endblock %}{% endblock %}
+    </div>
+{% endif %}
 </body>
 </html>

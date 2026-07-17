@@ -1,13 +1,12 @@
 {% extends "base.html" %}
 {% block title %}设置 · Research Workspace Lite{% endblock %}
 {% block content %}
-<main class="narrow">
-    <h1>个人设置</h1>
-    <form method="post" class="card">
+<main class="content-narrow">
+    <div class="page-heading"><p class="kicker">Research identity</p><h1>个人设置</h1><p>这些信息仅用于你的工作空间；公开主页将在后续阶段单独发布。</p></div>
+    <form method="post" class="panel form-panel">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">保存资料</button>
-        <a class="button secondary" href="{% url 'accounts:password_change' %}">修改密码</a>
+        <div class="form-actions"><button type="submit">保存资料</button><a class="button secondary" href="{% url 'accounts:password_change' %}">修改密码</a></div>
     </form>
 </main>
 {% endblock %}

@@ -1,6 +1,8 @@
 # Research Workspace Lite
 
-Private, lightweight research workspace. Stage 1 adds the first usable private workspace on top of the Stage 0 deployment skeleton.
+Private, lightweight research workspace for collecting papers, developing ideas,
+recording experiments, and connecting research evidence. Stages 0–3 are
+implemented on one small deployment stack.
 
 ## Stack
 
@@ -84,6 +86,25 @@ Docker uses the readiness endpoint for the `web` service health check.
 Administrators do not automatically gain application-level access to private
 research objects. Private content is also intentionally absent from Django
 admin.
+
+## Stage 3 research workflow
+
+- DOI and PDF paper import with Crossref metadata enrichment
+- A safe fallback that still creates a paper when Crossref is unavailable
+- PDF metadata and first-two-page text extraction with `pypdf` (no OCR)
+- Duplicate suggestions based on DOI, normalized title, and PDF SHA-256
+- BibTeX generation and download
+- Typed links between papers, ideas, experiments, issues, and other objects
+- Expanded permission-aware search across metadata, tags, projects, and comments
+- Purpose-built templates for paper, idea, experiment, and issue records
+
+## Interface
+
+The server-rendered UI uses a local research-workspace design system: a compact
+navigation rail, responsive mobile navigation, document-like content panels,
+and semantic object cards. It intentionally avoids a Node.js build pipeline or
+a heavyweight component framework so the three-service deployment remains
+small and easy to maintain.
 
 ## Tests and checks
 

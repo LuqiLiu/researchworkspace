@@ -1,17 +1,18 @@
 {% extends "base.html" %}
-{% block title %}项目 · Research Workspace Lite{% endblock %}
+{% block title %}研究项目 · Research Workspace Lite{% endblock %}
 {% block content %}
 <main>
-    <div class="toolbar">
-        <h1>项目</h1>
-        <a class="button" href="{% url 'projects:create' %}">新建项目</a>
-    </div>
+    <div class="page-heading-row"><div><p class="kicker">Research collections</p><h1>研究项目</h1><p>用轻量项目组织成员与明确共享的研究材料。</p></div><a class="button" href="{% url 'projects:create' %}">＋ 新建项目</a></div>
+    <section class="project-grid">
     {% for project in projects %}
-        <article class="card">
-            <p class="meta">{% if project.owner_id == user.id %}我创建的{% else %}我参与的{% endif %}</p>
+        <article class="panel project-card">
+            <div class="project-monogram">{{ project.name|first|upper }}</div>
+            <p class="kicker">{% if project.owner_id == user.id %}Owned project{% else %}Participating{% endif %}</p>
             <h2><a href="{% url 'projects:detail' project.pk %}">{{ project.name }}</a></h2>
-            <p>{{ project.description|truncatechars:180 }}</p>
+            <p>{{ project.description|default:"尚未添加项目简介。"|truncatechars:180 }}</p>
+            <span class="meta">{{ project.memberships.count }} 位成员 · {{ project.research_objects.count }} 条内容</span>
         </article>
-    {% empty %}<div class="card empty">还没有项目。</div>{% endfor %}
+    {% empty %}<div class="panel empty"><p class="kicker">No projects yet</p><h2>创建第一个研究项目</h2><p>项目只组织明确共享的内容，不追踪成员工作量。</p></div>{% endfor %}
+    </section>
 </main>
 {% endblock %}

@@ -2,19 +2,26 @@
 {% block title %}{{ object.title }} · Research Workspace Lite{% endblock %}
 {% block content %}
 <main>
-    <div class="toolbar">
+    <div class="page-heading-row">
         <div>
-            <p class="eyebrow">{{ object.get_object_type_display }} · {{ object.get_status_display }}</p>
+            <p class="kicker">{{ object.get_object_type_display }} · {{ object.get_status_display }}</p>
             <h1>{{ object.title }}</h1>
+            <p>最后更新于 {{ object.updated_at|date:"Y年m月d日 H:i" }}{% if object.owner_id != user.id %} · 所有者 {{ object.owner.get_username }}{% endif %}</p>
         </div>
-        <div class="inline-actions">
+        <div class="button-group">
             {% if can_edit %}<a class="button" href="{% url 'research_objects:edit' object.pk %}">编辑</a>{% endif %}
             <a class="button secondary" href="{% url 'research_objects:export' object.pk %}">导出 Markdown</a>
         </div>
     </div>
     <div class="content-grid">
-        <article class="card markdown">{{ content_html|safe }}</article>
-        <aside>
+        <article class="document-sheet markdown">
+            {% if content_html %}
+                {{ content_html|safe }}
+            {% else %}
+                <p class="muted">尚未添加正文。</p>
+            {% endif %}
+        </article>
+        <aside class="detail-sidebar">
             <section class="card">
                 <h2>状态</h2>
                 <p>{{ object.get_status_display }}</p>

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ heading }} · Research Workspace Lite{% endblock %}
 {% block content %}
-<main class="narrow">
-    <h1>{{ heading }}</h1>
-    <form method="post" class="card">
-        {% csrf_token %}{{ form.as_p }}<button type="submit">保存</button>
+<main class="content-narrow">
+    <div class="page-heading"><p class="kicker">Project settings</p><h1>{{ heading }}</h1><p>项目只组织明确共享的研究材料。</p></div>
+    <form method="post" class="panel form-panel">
+        {% csrf_token %}{{ form.as_p }}<div class="form-actions"><button type="submit">保存项目</button></div>
     </form>
 </main>
 {% endblock %}
