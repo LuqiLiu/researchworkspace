@@ -8,7 +8,12 @@ from app.projects.models import Project
 from .models import Attachment, ObjectRelation, ResearchObject, Tag
 
 
+class ObjectEditConflict(Exception):
+    """Raised when a stale editor attempts to overwrite a newer revision."""
+
+
 class ResearchObjectForm(forms.ModelForm):
+    object_version = forms.IntegerField(required=False, widget=forms.HiddenInput)
     tag_names = forms.CharField(
         label="标签",
         required=False,
@@ -42,6 +47,7 @@ class ResearchObjectForm(forms.ModelForm):
             is_archived=False
         )
         if self.instance.pk:
+            self.fields["object_version"].initial = self.instance.version
             self.fields["tag_names"].initial = ", ".join(
                 self.instance.tags.values_list("name", flat=True)
             )
@@ -78,6 +84,17 @@ class ResearchObjectForm(forms.ModelForm):
         if self.owner and not obj.pk:
             obj.owner = self.owner
         if commit:
+            if obj.pk:
+                current = ResearchObject.objects.select_for_update().get(pk=obj.pk)
+                submitted_version = self.cleaned_data.get("object_version")
+                if submitted_version != current.version:
+                    raise ObjectEditConflict
+                for field_name in self.Meta.fields:
+                    if field_name in self.fields:
+                        setattr(current, field_name, self.cleaned_data[field_name])
+                current.version += 1
+                obj = current
+                self.instance = current
             obj.save()
             if self.can_manage:
                 tags = []

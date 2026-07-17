@@ -143,6 +143,7 @@ class PermissionMatrixTests(TestCase):
                 "object_type": ResearchObject.ObjectType.NOTE,
                 "title": "Edited by collaborator",
                 "content_markdown": "updated",
+                "object_version": self.obj.version,
             },
         )
         self.assertRedirects(

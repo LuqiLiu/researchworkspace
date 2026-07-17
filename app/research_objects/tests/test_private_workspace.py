@@ -83,12 +83,43 @@ class PrivateWorkspaceTests(TestCase):
                 "title": "Autosaved",
                 "content_markdown": "new body",
                 "tag_names": "optimization",
+                "object_version": self.obj.version,
             },
         )
         self.assertEqual(response.status_code, 200)
         self.obj.refresh_from_db()
         self.assertEqual(self.obj.title, "Autosaved")
         self.assertEqual(self.obj.tags.get().name, "optimization")
+
+    def test_stale_autosave_is_rejected_without_overwriting_newer_content(self):
+        self.client.force_login(self.alice)
+        stale_version = self.obj.version
+        first = self.client.post(
+            reverse("research_objects:autosave", args=[self.obj.pk]),
+            {
+                "object_type": ResearchObject.ObjectType.NOTE,
+                "title": "First save",
+                "content_markdown": "newer body",
+                "tag_names": "",
+                "object_version": stale_version,
+            },
+        )
+        self.assertEqual(first.status_code, 200)
+        second = self.client.post(
+            reverse("research_objects:autosave", args=[self.obj.pk]),
+            {
+                "object_type": ResearchObject.ObjectType.NOTE,
+                "title": "Stale save",
+                "content_markdown": "stale body",
+                "tag_names": "",
+                "object_version": stale_version,
+            },
+        )
+        self.assertEqual(second.status_code, 409)
+        self.obj.refresh_from_db()
+        self.assertEqual(self.obj.title, "First save")
+        self.assertEqual(self.obj.content_markdown, "newer body")
+        self.assertEqual(self.obj.version, stale_version + 1)
 
     def test_search_does_not_leak_other_users_content(self):
         self.client.force_login(self.bob)

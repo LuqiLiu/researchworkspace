@@ -1,15 +1,6 @@
-from django.contrib import admin
+"""Project content is intentionally absent from Django admin.
 
-from .models import Project, ProjectMember
-
-
-class ProjectMemberInline(admin.TabularInline):
-    model = ProjectMember
-    extra = 0
-
-
-@admin.register(Project)
-class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("name", "owner", "is_archived", "updated_at")
-    search_fields = ("name", "owner__username")
-    inlines = (ProjectMemberInline,)
+System administrators manage accounts and operational state. Project ownership
+and membership changes must pass through the application permission and audit
+boundaries instead of Django admin's unrestricted model forms.
+"""

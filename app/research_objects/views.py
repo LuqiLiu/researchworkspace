@@ -17,7 +17,12 @@ from app.sharing.services import (
     can_manage,
 )
 
-from .forms import AttachmentForm, ObjectRelationForm, ResearchObjectForm
+from .forms import (
+    AttachmentForm,
+    ObjectEditConflict,
+    ObjectRelationForm,
+    ResearchObjectForm,
+)
 from .models import Attachment, ObjectRelation, ResearchObject
 from .services import render_markdown, search_objects, visible_objects
 
@@ -195,7 +200,19 @@ def object_edit(request, pk):
     )
     _enable_autosave(form, obj)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        try:
+            form.save()
+        except ObjectEditConflict:
+            form.add_error(
+                None,
+                "此内容已在其他页面更新。你的草稿仍保留在当前页面，请刷新后合并再保存。",
+            )
+            return render(
+                request,
+                "research_objects/form.html",
+                {"form": form, "heading": "编辑内容", "object": obj},
+                status=409,
+            )
         messages.success(request, "内容已保存。")
         return redirect("research_objects:detail", pk=obj.pk)
     return render(
@@ -219,7 +236,13 @@ def object_autosave(request, pk):
     )
     if not form.is_valid():
         return HttpResponse("自动保存失败，请检查必填字段。", status=422)
-    form.save()
+    try:
+        form.save()
+    except ObjectEditConflict:
+        return HttpResponse(
+            "自动保存已暂停：服务器上存在更新版本，请刷新后合并。",
+            status=409,
+        )
     return HttpResponse("已自动保存")
 
 

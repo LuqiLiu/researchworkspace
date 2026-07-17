@@ -94,6 +94,7 @@ class ResearchObject(models.Model):
     )
     is_favorite = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
+    version = models.PositiveBigIntegerField(default=1, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
