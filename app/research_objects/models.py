@@ -55,6 +55,7 @@ class ResearchObject(models.Model):
 
     class Status(models.TextChoices):
         PRIVATE = "PRIVATE", "仅自己"
+        SHARED = "SHARED", "已分享"
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -70,6 +71,15 @@ class ResearchObject(models.Model):
     content_markdown = models.TextField()
     content_plain_text = models.TextField(blank=True, editable=False)
     metadata_json = models.JSONField(default=dict, blank=True)
+    project = models.ForeignKey(
+        "projects.Project",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="research_objects",
+    )
+    is_shared_with_project = models.BooleanField(default=False)
+    share_project_attachments = models.BooleanField(default=False)
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -99,6 +109,13 @@ class ResearchObject(models.Model):
     def save(self, *args, **kwargs):
         from .services import markdown_to_plain_text
 
+        if not self.project_id:
+            self.is_shared_with_project = False
+            self.share_project_attachments = False
+        if not self.is_shared_with_project:
+            self.share_project_attachments = False
+        elif self.project_id:
+            self.status = self.Status.SHARED
         self.content_plain_text = markdown_to_plain_text(self.content_markdown)
         super().save(*args, **kwargs)
 

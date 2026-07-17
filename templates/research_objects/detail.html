@@ -4,11 +4,11 @@
 <main>
     <div class="toolbar">
         <div>
-            <p class="eyebrow">{{ object.get_object_type_display }} · 仅自己</p>
+            <p class="eyebrow">{{ object.get_object_type_display }} · {{ object.get_status_display }}</p>
             <h1>{{ object.title }}</h1>
         </div>
         <div class="inline-actions">
-            <a class="button" href="{% url 'research_objects:edit' object.pk %}">编辑</a>
+            {% if can_edit %}<a class="button" href="{% url 'research_objects:edit' object.pk %}">编辑</a>{% endif %}
             <a class="button secondary" href="{% url 'research_objects:export' object.pk %}">导出 Markdown</a>
         </div>
     </div>
@@ -17,7 +17,11 @@
         <aside>
             <section class="card">
                 <h2>状态</h2>
-                <p>仅自己可见</p>
+                <p>{{ object.get_status_display }}</p>
+                {% if object.project %}
+                    <p><a href="{% url 'projects:detail' object.project.pk %}">{{ object.project.name }}</a>{% if object.is_shared_with_project %} · 项目成员可见{% endif %}</p>
+                {% endif %}
+                {% if can_manage %}
                 <div class="inline-actions">
                     <form method="post" action="{% url 'research_objects:toggle' object.pk 'is_favorite' %}">
                         {% csrf_token %}<button class="secondary" type="submit">{% if object.is_favorite %}取消收藏{% else %}收藏{% endif %}</button>
@@ -26,25 +30,86 @@
                         {% csrf_token %}<button class="secondary" type="submit">{% if object.is_archived %}取消归档{% else %}归档{% endif %}</button>
                     </form>
                 </div>
+                {% endif %}
                 <p class="meta">{% for tag in object.tags.all %}#{{ tag.name }} {% empty %}无标签{% endfor %}</p>
             </section>
             <section class="card">
                 <h2>附件</h2>
                 <ul class="attachment-list">
-                    {% for attachment in object.attachments.all %}
+                    {% for attachment in attachments %}
                         <li><a href="{% url 'research_objects:attachment_download' attachment.pk %}">{{ attachment.original_name }}</a></li>
                     {% empty %}<li class="meta">暂无附件</li>{% endfor %}
                 </ul>
-                <form method="post" enctype="multipart/form-data" action="{% url 'research_objects:attachment_upload' object.pk %}">
-                    {% csrf_token %}{{ attachment_form.as_p }}<button type="submit">上传</button>
-                </form>
+                {% if can_manage %}
+                    <form method="post" enctype="multipart/form-data" action="{% url 'research_objects:attachment_upload' object.pk %}">
+                        {% csrf_token %}{{ attachment_form.as_p }}<button type="submit">上传</button>
+                    </form>
+                {% endif %}
             </section>
+            {% if can_manage %}
+                <section class="card">
+                    <h2>分享给成员</h2>
+                    <form method="post" action="{% url 'sharing:create' object.pk %}">
+                        {% csrf_token %}{{ share_form.as_p }}<button type="submit">添加分享</button>
+                    </form>
+                    {% for share in object.direct_shares.all %}
+                        <div class="share-entry">
+                            <strong>{{ share.user.get_username }}</strong>
+                            <form method="post" action="{% url 'sharing:update' share.pk %}">
+                                {% csrf_token %}
+                                <select name="permission">
+                                    {% for value, label in share.Permission.choices %}
+                                        <option value="{{ value }}" {% if share.permission == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <label><input type="checkbox" name="include_attachments" {% if share.include_attachments %}checked{% endif %}> 附件</label>
+                                <button class="secondary" type="submit">更新</button>
+                            </form>
+                            <form method="post" action="{% url 'sharing:revoke' share.pk %}">
+                                {% csrf_token %}<button class="danger" type="submit">撤销</button>
+                            </form>
+                        </div>
+                    {% empty %}<p class="meta">尚未直接分享。</p>{% endfor %}
+                </section>
+            {% endif %}
+            {% if can_manage %}
             <section class="card">
                 <form method="post" action="{% url 'research_objects:delete' object.pk %}">
                     {% csrf_token %}<button class="danger" type="submit">软删除</button>
                 </form>
             </section>
+            {% endif %}
         </aside>
     </div>
+    <section class="card">
+        <h2>讨论</h2>
+        {% for comment in comments %}
+            <article class="comment">
+                <p><strong>{{ comment.author.get_username }}</strong> <span class="meta">{{ comment.created_at|date:"Y-m-d H:i" }}</span></p>
+                <p>{{ comment.content|linebreaksbr }}</p>
+                {% if comment.parent %}<p class="meta">回复 {{ comment.parent.author.get_username }}</p>{% endif %}
+                {% if can_comment %}
+                    <form method="post" action="{% url 'comments:create' object.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="parent" value="{{ comment.pk }}">
+                        <input type="text" name="content" placeholder="回复这条评论" required>
+                        <button class="secondary" type="submit">回复</button>
+                    </form>
+                {% endif %}
+                {% if comment.author_id == user.id or can_manage %}
+                    <form method="post" action="{% url 'comments:delete' comment.pk %}">
+                        {% csrf_token %}<button class="secondary" type="submit">删除评论</button>
+                    </form>
+                {% endif %}
+            </article>
+        {% empty %}<p class="meta">暂无评论。</p>{% endfor %}
+        {% if can_comment %}
+            <form method="post" action="{% url 'comments:create' object.pk %}">
+                {% csrf_token %}{{ comment_form.as_p }}<button type="submit">发表评论</button>
+            </form>
+        {% else %}
+            <p class="meta">当前权限仅允许查看。</p>
+        {% endif %}
+    </section>
 </main>
 {% endblock %}

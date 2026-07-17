@@ -1,7 +1,8 @@
 # Delivery plan
 
-Stage 0 is complete. Stage 1 now provides the private workspace MVP while
-preserving the same lightweight deployment architecture.
+Stages 0–2 are complete. The application now provides the private workspace
+and selective collaboration while preserving the same lightweight deployment
+architecture.
 
 ## Architecture
 
@@ -31,7 +32,20 @@ preserving the same lightweight deployment architecture.
 - Backend ownership filtering for list, detail, edit, export, autosave, search,
   and attachment access.
 
+## Stage 2 delivered
+
+- Direct sharing with viewer, commenter, and editor permission levels.
+- Lightweight projects with member/editor roles and explicit per-object
+  project sharing.
+- Independent attachment permission for direct and project shares.
+- Threaded comments that remain visible only while object access is valid.
+- A centralized permission service used by object, search, export, comment,
+  edit, and attachment endpoints.
+- Immediate revocation and security audit records for permission changes.
+- A permission-matrix test suite covering owner, stranger, viewer, commenter,
+  editor, project member, project editor, revoked user, and administrator.
+
 ## Explicitly deferred
 
-Sharing, projects, comments, paper metadata import, object relations, and public
-publication snapshots belong to later PRD stages and remain intentionally absent.
+Paper metadata import, object relations, and public publication snapshots
+belong to later PRD stages and remain intentionally absent.

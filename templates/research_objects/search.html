@@ -9,7 +9,7 @@
     </form>
     {% for object in objects %}
         <article class="card">
-            <p class="meta">{{ object.get_object_type_display }} · 仅自己</p>
+            <p class="meta">{{ object.get_object_type_display }} · {{ object.get_status_display }} · 所有者 {{ object.owner.get_username }}</p>
             <h2><a href="{% url 'research_objects:detail' object.pk %}">{{ object.title }}</a></h2>
             <p>{{ object.content_plain_text|truncatechars:180 }}</p>
         </article>

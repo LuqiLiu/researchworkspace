@@ -3,6 +3,8 @@ from pathlib import Path
 from django import forms
 from django.db import transaction
 
+from app.projects.models import Project
+
 from .models import Attachment, ResearchObject, Tag
 
 
@@ -15,20 +17,60 @@ class ResearchObjectForm(forms.ModelForm):
 
     class Meta:
         model = ResearchObject
-        fields = ("object_type", "title", "content_markdown")
+        fields = (
+            "object_type",
+            "title",
+            "content_markdown",
+            "project",
+            "is_shared_with_project",
+            "share_project_attachments",
+        )
         labels = {
             "object_type": "类型",
             "title": "标题",
             "content_markdown": "正文（Markdown）",
+            "project": "关联项目",
+            "is_shared_with_project": "项目成员可访问",
+            "share_project_attachments": "项目成员也可访问附件",
         }
 
-    def __init__(self, *args, owner=None, **kwargs):
+    def __init__(self, *args, owner=None, can_manage=True, **kwargs):
         self.owner = owner
+        self.can_manage = can_manage
         super().__init__(*args, **kwargs)
+        self.fields["project"].queryset = Project.objects.visible_to(owner).filter(
+            is_archived=False
+        )
         if self.instance.pk:
             self.fields["tag_names"].initial = ", ".join(
                 self.instance.tags.values_list("name", flat=True)
             )
+        if not can_manage:
+            for field_name in (
+                "tag_names",
+                "project",
+                "is_shared_with_project",
+                "share_project_attachments",
+            ):
+                self.fields.pop(field_name)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.can_manage:
+            project = cleaned_data.get("project")
+            shared = cleaned_data.get("is_shared_with_project")
+            share_attachments = cleaned_data.get("share_project_attachments")
+            if shared and project is None:
+                self.add_error(
+                    "is_shared_with_project",
+                    "请先选择关联项目。",
+                )
+            if share_attachments and not shared:
+                self.add_error(
+                    "share_project_attachments",
+                    "必须先允许项目成员访问正文。",
+                )
+        return cleaned_data
 
     @transaction.atomic
     def save(self, commit=True):
@@ -37,21 +79,25 @@ class ResearchObjectForm(forms.ModelForm):
             obj.owner = self.owner
         if commit:
             obj.save()
-            tags = []
-            seen = set()
-            for raw_name in self.cleaned_data.get("tag_names", "").split(","):
-                name = raw_name.strip()
-                normalized = name.casefold()
-                if not name or normalized in seen:
-                    continue
-                seen.add(normalized)
-                tag, _ = Tag.objects.get_or_create(
-                    owner=obj.owner,
-                    normalized_name=normalized,
-                    defaults={"name": name},
-                )
-                tags.append(tag)
-            obj.tags.set(tags)
+            if self.can_manage:
+                tags = []
+                seen = set()
+                for raw_name in self.cleaned_data.get("tag_names", "").split(","):
+                    name = raw_name.strip()
+                    normalized = name.casefold()
+                    if not name or normalized in seen:
+                        continue
+                    seen.add(normalized)
+                    tag, _ = Tag.objects.get_or_create(
+                        owner=obj.owner,
+                        normalized_name=normalized,
+                        defaults={"name": name},
+                    )
+                    tags.append(tag)
+                obj.tags.set(tags)
+                from app.sharing.services import sync_object_status
+
+                sync_object_status(obj)
         return obj
 
 

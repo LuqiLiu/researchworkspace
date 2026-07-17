@@ -36,8 +36,12 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "app.accounts.apps.AccountsConfig",
+    "app.audit.apps.AuditConfig",
+    "app.comments.apps.CommentsConfig",
     "app.core.apps.CoreConfig",
+    "app.projects.apps.ProjectsConfig",
     "app.research_objects.apps.ResearchObjectsConfig",
+    "app.sharing.apps.SharingConfig",
 ]
 
 MIDDLEWARE = [

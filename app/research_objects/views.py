@@ -8,12 +8,28 @@ from django.urls import reverse
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from app.comments.forms import CommentForm
+from app.sharing.forms import ObjectShareForm
+from app.sharing.services import (
+    can_access_attachment,
+    can_comment,
+    can_edit,
+    can_manage,
+)
+
 from .forms import AttachmentForm, ResearchObjectForm
 from .models import Attachment, ResearchObject
 from .services import render_markdown, search_objects, visible_objects
 
 
 def _owned_object_or_404(user, pk):
+    return get_object_or_404(
+        ResearchObject.objects.active().filter(owner=user),
+        pk=pk,
+    )
+
+
+def _visible_object_or_404(user, pk):
     return get_object_or_404(visible_objects(user), pk=pk)
 
 
@@ -32,7 +48,7 @@ def _enable_autosave(form, obj):
 
 @login_required
 def object_list(request):
-    objects = visible_objects(request.user)
+    objects = visible_objects(request.user).filter(owner=request.user)
     if request.GET.get("archived") != "1":
         objects = objects.filter(is_archived=False)
     if request.GET.get("favorite") == "1":
@@ -69,7 +85,15 @@ def object_create(request):
 
 @login_required
 def object_detail(request, pk):
-    obj = _owned_object_or_404(request.user, pk)
+    obj = _visible_object_or_404(request.user, pk)
+    comments = obj.comments.filter(deleted_at__isnull=True).select_related(
+        "author", "parent"
+    )
+    attachments = [
+        attachment
+        for attachment in obj.attachments.all()
+        if can_access_attachment(request.user, attachment)
+    ]
     return render(
         request,
         "research_objects/detail.html",
@@ -77,6 +101,17 @@ def object_detail(request, pk):
             "object": obj,
             "content_html": render_markdown(obj.content_markdown),
             "attachment_form": AttachmentForm(),
+            "attachments": attachments,
+            "comment_form": CommentForm(),
+            "comments": comments,
+            "can_comment": can_comment(request.user, obj),
+            "can_edit": can_edit(request.user, obj),
+            "can_manage": can_manage(request.user, obj),
+            "share_form": (
+                ObjectShareForm(research_object=obj)
+                if can_manage(request.user, obj)
+                else None
+            ),
         },
     )
 
@@ -84,11 +119,15 @@ def object_detail(request, pk):
 @login_required
 @require_http_methods(["GET", "POST"])
 def object_edit(request, pk):
-    obj = _owned_object_or_404(request.user, pk)
+    obj = _visible_object_or_404(request.user, pk)
+    if not can_edit(request.user, obj):
+        raise Http404
+    may_manage = can_manage(request.user, obj)
     form = ResearchObjectForm(
         request.POST or None,
         instance=obj,
-        owner=request.user,
+        owner=obj.owner,
+        can_manage=may_manage,
     )
     _enable_autosave(form, obj)
     if request.method == "POST" and form.is_valid():
@@ -105,8 +144,15 @@ def object_edit(request, pk):
 @login_required
 @require_POST
 def object_autosave(request, pk):
-    obj = _owned_object_or_404(request.user, pk)
-    form = ResearchObjectForm(request.POST, instance=obj, owner=request.user)
+    obj = _visible_object_or_404(request.user, pk)
+    if not can_edit(request.user, obj):
+        raise Http404
+    form = ResearchObjectForm(
+        request.POST,
+        instance=obj,
+        owner=obj.owner,
+        can_manage=can_manage(request.user, obj),
+    )
     if not form.is_valid():
         return HttpResponse("自动保存失败，请检查必填字段。", status=422)
     form.save()
@@ -136,7 +182,7 @@ def object_delete(request, pk):
 @login_required
 @require_GET
 def object_export(request, pk):
-    obj = _owned_object_or_404(request.user, pk)
+    obj = _visible_object_or_404(request.user, pk)
     safe_title = slugify(obj.title)[:80] or "research-object"
     response = HttpResponse(
         obj.content_markdown,
@@ -187,11 +233,15 @@ def attachment_upload(request, pk):
 @require_GET
 def attachment_download(request, pk):
     attachment = get_object_or_404(
-        Attachment.objects.select_related("research_object"),
+        Attachment.objects.select_related(
+            "research_object",
+            "research_object__project",
+        ),
         pk=pk,
-        owner=request.user,
         research_object__deleted_at__isnull=True,
     )
+    if not can_access_attachment(request.user, attachment):
+        raise Http404
     if not attachment.file.storage.exists(attachment.file.name):
         raise Http404
     return FileResponse(

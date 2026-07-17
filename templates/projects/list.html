@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}项目 · Research Workspace Lite{% endblock %}
+{% block content %}
+<main>
+    <div class="toolbar">
+        <h1>项目</h1>
+        <a class="button" href="{% url 'projects:create' %}">新建项目</a>
+    </div>
+    {% for project in projects %}
+        <article class="card">
+            <p class="meta">{% if project.owner_id == user.id %}我创建的{% else %}我参与的{% endif %}</p>
+            <h2><a href="{% url 'projects:detail' project.pk %}">{{ project.name }}</a></h2>
+            <p>{{ project.description|truncatechars:180 }}</p>
+        </article>
+    {% empty %}<div class="card empty">还没有项目。</div>{% endfor %}
+</main>
+{% endblock %}

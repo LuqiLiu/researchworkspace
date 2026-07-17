@@ -15,6 +15,8 @@
         {% if user.is_authenticated %}
             <nav>
                 <a href="{% url 'research_objects:list' %}">我的内容</a>
+                <a href="{% url 'sharing:shared_with_me' %}">分享给我的</a>
+                <a href="{% url 'projects:list' %}">项目</a>
                 <a href="{% url 'research_objects:search' %}">搜索</a>
                 <a href="{% url 'accounts:profile' %}">设置</a>
                 {% if user.is_staff %}<a href="{% url 'admin:index' %}">管理</a>{% endif %}

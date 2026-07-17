@@ -69,6 +69,22 @@ Docker uses the readiness endpoint for the `web` service health check.
 - Personal tags, favorites, archive, soft deletion, Markdown export, and permission-aware search
 - Private attachments stored outside Caddy's public static routes
 
+## Stage 2 collaboration
+
+- Direct member sharing with `VIEWER`, `COMMENTER`, and `EDITOR` permissions
+- Attachment access remains separately opt-in for every direct share
+- Lightweight projects with owner-managed `MEMBER` and `EDITOR` roles
+- Project content is visible only when the content owner explicitly enables
+  project sharing
+- Threaded comments for users with comment permission
+- Immediate access revocation for direct shares and project membership
+- Security audit records for share, revocation, project-member, and comment
+  moderation events
+
+Administrators do not automatically gain application-level access to private
+research objects. Private content is also intentionally absent from Django
+admin.
+
 ## Tests and checks
 
 Tests use an isolated SQLite database so framework checks and unit tests do not require a running PostgreSQL container:

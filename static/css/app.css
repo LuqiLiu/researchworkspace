@@ -74,6 +74,12 @@ textarea { min-height: 18rem; resize: vertical; }
 .search-row { display: flex; gap: .5rem; align-items: center; }
 .search-row input { flex: 1; }
 .attachment-list { padding-left: 1.2rem; }
+.share-entry, .member-entry, .comment {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #dbe3df;
+}
+.share-entry form, .member-entry form { margin-top: .5rem; }
 
 @media (max-width: 720px) {
     .site-header { align-items: flex-start; flex-direction: column; gap: .75rem; }

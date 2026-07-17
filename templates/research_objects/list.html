@@ -22,7 +22,7 @@
     </form>
     {% for object in objects %}
         <article class="card">
-            <p class="meta">{{ object.get_object_type_display }} · 仅自己 · 更新于 {{ object.updated_at|date:"Y-m-d H:i" }}</p>
+            <p class="meta">{{ object.get_object_type_display }} · {{ object.get_status_display }} · 更新于 {{ object.updated_at|date:"Y-m-d H:i" }}</p>
             <h2><a href="{% url 'research_objects:detail' object.pk %}">{{ object.title }}</a></h2>
             <p>{{ object.content_plain_text|truncatechars:180 }}</p>
             <p class="meta">{% for tag in object.tags.all %}#{{ tag.name }} {% empty %}无标签{% endfor %}</p>

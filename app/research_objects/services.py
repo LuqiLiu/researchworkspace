@@ -34,9 +34,9 @@ def markdown_to_plain_text(value):
 
 
 def visible_objects(user):
-    from .models import ResearchObject
+    from app.sharing.services import visible_objects as shared_visible_objects
 
-    return ResearchObject.objects.visible_to(user).prefetch_related("tags")
+    return shared_visible_objects(user)
 
 
 def search_objects(user, query):

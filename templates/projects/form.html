@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }} · Research Workspace Lite{% endblock %}
+{% block content %}
+<main class="narrow">
+    <h1>{{ heading }}</h1>
+    <form method="post" class="card">
+        {% csrf_token %}{{ form.as_p }}<button type="submit">保存</button>
+    </form>
+</main>
+{% endblock %}

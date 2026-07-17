@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} · Research Workspace Lite{% endblock %}
+{% block content %}
+<main>
+    <div class="toolbar">
+        <div>
+            <p class="eyebrow">Project</p>
+            <h1>{{ project.name }}</h1>
+        </div>
+        {% if can_edit_project %}<a class="button" href="{% url 'projects:edit' project.pk %}">编辑项目</a>{% endif %}
+    </div>
+    <p class="card">{{ project.description|linebreaksbr|default:"暂无项目简介。" }}</p>
+    <div class="content-grid">
+        <section>
+            <h2>项目共享内容</h2>
+            {% for object in objects %}
+                <article class="card">
+                    <p class="meta">{{ object.get_object_type_display }} · {{ object.owner.get_username }}</p>
+                    <h2><a href="{% url 'research_objects:detail' object.pk %}">{{ object.title }}</a></h2>
+                </article>
+            {% empty %}<div class="card empty">暂无明确共享到项目的内容。</div>{% endfor %}
+        </section>
+        <aside>
+            <section class="card">
+                <h2>成员</h2>
+                <p><strong>{{ project.owner.get_username }}</strong> · 所有者</p>
+                {% for membership in project.memberships.all %}
+                    <div class="member-entry">
+                        <strong>{{ membership.user.get_username }}</strong>
+                        {% if project.owner_id == user.id %}
+                            <form method="post" action="{% url 'projects:member_update' membership.pk %}">
+                                {% csrf_token %}
+                                <select name="role">
+                                    {% for value, label in membership.Role.choices %}
+                                        <option value="{{ value }}" {% if membership.role == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button class="secondary" type="submit">更新</button>
+                            </form>
+                            <form method="post" action="{% url 'projects:member_remove' membership.pk %}">
+                                {% csrf_token %}<button class="danger" type="submit">移除</button>
+                            </form>
+                        {% else %}
+                            <span class="meta">{{ membership.get_role_display }}</span>
+                        {% endif %}
+                    </div>
+                {% empty %}<p class="meta">尚无其他成员。</p>{% endfor %}
+            </section>
+            {% if member_form %}
+                <section class="card">
+                    <h2>添加成员</h2>
+                    <form method="post" action="{% url 'projects:member_add' project.pk %}">
+                        {% csrf_token %}{{ member_form.as_p }}<button type="submit">添加</button>
+                    </form>
+                </section>
+            {% endif %}
+        </aside>
+    </div>
+</main>
+{% endblock %}
