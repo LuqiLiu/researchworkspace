@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}编辑公开快照 · Research Workspace Lite{% endblock %}
+{% block content %}
+<main class="content-narrow">
+    <div class="page-heading"><p class="kicker">Publication snapshot</p><h1>编辑公开快照</h1><p>来源：{{ source.title }}。请删除服务器路径、密钥、账号信息以及不适合公开的合作内容。</p></div>
+    <section class="card snapshot-boundary">
+        <strong>公开边界</strong>
+        <p>评论、分享成员、私人标签和原始附件不会被自动复制。所选附件会生成独立公开副本。</p>
+    </section>
+    <form method="post" enctype="multipart/form-data" class="panel form-panel">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="form-actions"><button type="submit">保存并预览</button>{% if snapshot.pk %}<a class="button secondary" href="{% url 'publications:preview' snapshot.pk %}">返回预览</a>{% endif %}</div>
+    </form>
+</main>
+{% endblock %}

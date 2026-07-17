@@ -106,6 +106,20 @@ and semantic object cards. It intentionally avoids a Node.js build pipeline or
 a heavyweight component framework so the three-service deployment remains
 small and easy to maintain.
 
+## Stage 4 public profiles
+
+- Opt-in academic profiles at `/u/{public-slug}/`
+- Separate publication snapshots that never render live private source content
+- Owner-only draft editing, preview, publish, update, and withdrawal controls
+- Public paper index, selected-work cards, cover images, and basic SEO metadata
+- Explicit attachment rights confirmation and copied public attachment files
+- Publish-time checks for likely secrets, credentials, and server paths
+- Immediate public URL removal when a snapshot or profile is taken offline
+
+Internal pages default to `noindex,nofollow`. `robots.txt` permits `/u/` while
+disallowing the rest of the application, and only explicitly published pages
+emit `index,follow` metadata.
+
 ## Tests and checks
 
 Tests use an isolated SQLite database so framework checks and unit tests do not require a running PostgreSQL container:

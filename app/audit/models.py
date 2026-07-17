@@ -11,6 +11,8 @@ class SecurityAuditLog(models.Model):
         PROJECT_MEMBER_UPDATED = "PROJECT_MEMBER_UPDATED", "Project member updated"
         PROJECT_MEMBER_REMOVED = "PROJECT_MEMBER_REMOVED", "Project member removed"
         COMMENT_DELETED = "COMMENT_DELETED", "Comment deleted"
+        PUBLICATION_PUBLISHED = "PUBLICATION_PUBLISHED", "Publication published"
+        PUBLICATION_WITHDRAWN = "PUBLICATION_WITHDRAWN", "Publication withdrawn"
 
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL,

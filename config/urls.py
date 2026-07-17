@@ -7,6 +7,7 @@ urlpatterns = [
     path("comments/", include("app.comments.urls")),
     path("papers/", include("app.papers.urls")),
     path("projects/", include("app.projects.urls")),
+    path("", include("app.publications.urls")),
     path("shared/", include("app.sharing.urls")),
     path("workspace/", include("app.research_objects.urls")),
     path("", include("app.core.urls")),

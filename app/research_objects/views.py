@@ -111,6 +111,13 @@ def object_detail(request, pk):
     incoming_relations = obj.incoming_relations.filter(
         source_object_id__in=visible_ids
     ).select_related("source_object")
+    publication_snapshot = None
+    if can_manage(request.user, obj):
+        from app.publications.models import PublicationSnapshot
+
+        publication_snapshot = PublicationSnapshot.objects.filter(
+            source_object=obj
+        ).first()
     return render(
         request,
         "research_objects/detail.html",
@@ -136,6 +143,7 @@ def object_detail(request, pk):
             ),
             "outgoing_relations": outgoing_relations,
             "incoming_relations": incoming_relations,
+            "publication_snapshot": publication_snapshot,
         },
     )
 

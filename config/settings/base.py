@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "app.core.apps.CoreConfig",
     "app.projects.apps.ProjectsConfig",
     "app.papers.apps.PapersConfig",
+    "app.publications.apps.PublicationsConfig",
     "app.research_objects.apps.ResearchObjectsConfig",
     "app.sharing.apps.SharingConfig",
 ]

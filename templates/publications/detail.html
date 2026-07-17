@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ snapshot.title }} · {{ profile.display_name|default:profile.user.username }}{% endblock %}
+{% block meta_description %}{{ snapshot.summary|default:snapshot.content_markdown|striptags|truncatechars:155 }}{% endblock %}
+{% block meta_robots %}{% if preview %}noindex,nofollow{% else %}index,follow{% endif %}{% endblock %}
+{% block extra_head %}{% if not preview %}<link rel="canonical" href="{{ request.build_absolute_uri }}"><meta property="og:title" content="{{ snapshot.title }}"><meta property="og:description" content="{{ snapshot.summary|truncatechars:180 }}"><meta property="og:type" content="article">{% endif %}{% endblock %}
+{% block body_class %}academic-public-body{% endblock %}
+{% block content %}{% include "publications/_detail_body.html" %}{% endblock %}
+{% block public_content %}{% include "publications/_detail_body.html" %}{% endblock %}

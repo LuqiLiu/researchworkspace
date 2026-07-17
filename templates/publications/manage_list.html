@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}我的主页 · Research Workspace Lite{% endblock %}
+{% block content %}
+<main>
+    <div class="page-heading-row">
+        <div><p class="kicker">Public scholarship</p><h1>我的公开主页</h1><p>公开内容由独立快照组成，私人原稿的后续修改不会自动同步。</p></div>
+        <div class="button-group">
+            <a class="button secondary" href="{% url 'accounts:profile' %}">主页资料</a>
+            {% if user.profile.public_enabled and user.profile.public_slug %}<a class="button" href="{% url 'publications:public_profile' user.profile.public_slug %}" target="_blank" rel="noopener">访问公开主页</a>{% endif %}
+        </div>
+    </div>
+    {% if not user.profile.public_enabled %}
+        <section class="card notice-card"><strong>公开主页尚未启用</strong><p>你仍可准备快照草稿；在个人设置中启用后，已发布内容才会对互联网访问者可见。</p></section>
+    {% endif %}
+    <div class="object-list">
+        {% for snapshot in snapshots %}
+            <article class="research-card publication-manage-card">
+                <div class="type-glyph">◎</div>
+                <div>
+                    <div class="card-topline"><span>{{ snapshot.source_object.get_object_type_display }}</span><span>·</span><span>{% if snapshot.is_published %}已发布{% else %}草稿{% endif %}</span></div>
+                    <h2><a href="{% url 'publications:preview' snapshot.pk %}">{{ snapshot.title }}</a></h2>
+                    <p class="excerpt">{{ snapshot.summary|default:"尚未填写公开摘要"|truncatechars:150 }}</p>
+                </div>
+                <time class="card-date">{{ snapshot.updated_at|date:"Y-m-d" }}</time>
+            </article>
+        {% empty %}
+            <section class="card empty"><h2>还没有公开快照</h2><p>从任意私人研究对象详情页选择“发布到个人主页”。</p><a class="button" href="{% url 'research_objects:list' %}">选择研究内容</a></section>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.forms import AuthenticationForm
@@ -31,18 +33,30 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         fields = (
             "display_name",
+            "avatar",
             "email",
             "affiliation",
+            "position",
             "bio",
             "research_interests",
             "orcid",
+            "google_scholar_url",
+            "github_url",
+            "contact_email",
+            "public_enabled",
         )
         labels = {
             "display_name": "姓名",
+            "avatar": "头像",
             "affiliation": "机构或身份",
+            "position": "职位或学术身份",
             "bio": "个人简介",
             "research_interests": "研究方向",
             "orcid": "ORCID",
+            "google_scholar_url": "Google Scholar",
+            "github_url": "GitHub",
+            "contact_email": "公开联系邮箱",
+            "public_enabled": "启用公开个人主页",
         }
         widgets = {
             "bio": forms.Textarea(attrs={"rows": 5}),
@@ -52,6 +66,16 @@ class UserProfileForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["email"].initial = self.instance.user.email
+
+    def clean_avatar(self):
+        avatar = self.cleaned_data.get("avatar")
+        if not avatar or not hasattr(avatar, "size"):
+            return avatar
+        if avatar.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("头像不能超过 5 MB。")
+        if Path(avatar.name).suffix.lower() not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+            raise forms.ValidationError("头像仅支持 JPG、PNG、WebP 或 GIF。")
+        return avatar
 
     def save(self, commit=True):
         profile = super().save(commit=False)

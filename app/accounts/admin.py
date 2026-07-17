@@ -5,7 +5,8 @@ from .models import LoginAttempt, UserProfile
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "display_name", "affiliation")
+    list_display = ("user", "display_name", "affiliation", "public_enabled")
+    list_filter = ("public_enabled",)
     search_fields = ("user__username", "user__email", "display_name")
 
 

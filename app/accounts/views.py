@@ -62,7 +62,11 @@ def profile(request):
     from .models import UserProfile
 
     profile_instance, _ = UserProfile.objects.get_or_create(user=request.user)
-    form = UserProfileForm(request.POST or None, instance=profile_instance)
+    form = UserProfileForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=profile_instance,
+    )
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, "个人资料已保存。")

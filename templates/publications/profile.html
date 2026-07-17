@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.display_name|default:profile.user.username }} · Research Profile{% endblock %}
+{% block meta_description %}{{ profile.bio|default:profile.research_interests|truncatechars:155 }}{% endblock %}
+{% block meta_robots %}index,follow{% endblock %}
+{% block extra_head %}<link rel="canonical" href="{{ request.build_absolute_uri }}"><meta property="og:title" content="{{ profile.display_name|default:profile.user.username }}"><meta property="og:description" content="{{ profile.bio|default:profile.research_interests|truncatechars:180 }}"><meta property="og:type" content="profile">{% endblock %}
+{% block body_class %}academic-public-body{% endblock %}
+{% block content %}{% include "publications/_profile_body.html" %}{% endblock %}
+{% block public_content %}{% include "publications/_profile_body.html" %}{% endblock %}

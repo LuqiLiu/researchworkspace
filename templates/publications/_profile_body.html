@@ -1,0 +1,35 @@
+<main class="academic-profile">
+    <header class="academic-identity">
+        <div class="academic-avatar">
+            {% if profile.avatar %}<img src="{% url 'publications:profile_avatar' profile.public_slug %}" alt="{{ profile.display_name|default:profile.user.username }}">{% else %}<span>{{ profile.display_name|default:profile.user.username|first|upper }}</span>{% endif %}
+        </div>
+        <div>
+            <p class="kicker">Research profile</p>
+            <h1>{{ profile.display_name|default:profile.user.username }}</h1>
+            {% if profile.position or profile.affiliation %}<p class="academic-role">{{ profile.position }}{% if profile.position and profile.affiliation %} · {% endif %}{{ profile.affiliation }}</p>{% endif %}
+            <nav class="academic-links" aria-label="学术链接">
+                <a href="{% url 'publications:public_profile' profile.public_slug %}">主页</a>
+                <a href="{% url 'publications:public_publications' profile.public_slug %}">论文</a>
+                {% if profile.orcid %}<a href="https://orcid.org/{{ profile.orcid|cut:'https://orcid.org/' }}" rel="me noopener">ORCID</a>{% endif %}
+                {% if profile.google_scholar_url %}<a href="{{ profile.google_scholar_url }}" rel="noopener">Scholar</a>{% endif %}
+                {% if profile.github_url %}<a href="{{ profile.github_url }}" rel="me noopener">GitHub</a>{% endif %}
+                {% if profile.contact_email %}<a href="mailto:{{ profile.contact_email }}">联系</a>{% endif %}
+            </nav>
+        </div>
+    </header>
+    {% if profile.bio %}<section class="academic-intro"><p>{{ profile.bio|linebreaksbr }}</p></section>{% endif %}
+    {% if profile.research_interests %}<section class="research-interests"><span>研究方向</span><p>{{ profile.research_interests|linebreaksbr }}</p></section>{% endif %}
+    <section class="public-work-section">
+        <div class="section-heading"><div><p class="kicker">Selected work</p><h2>公开研究内容</h2></div><a href="{% url 'publications:public_publications' profile.public_slug %}">查看论文 →</a></div>
+        <div class="public-work-grid">
+            {% for snapshot in snapshots %}
+                <article class="public-work-card">
+                    <p class="meta">{{ snapshot.source_object.get_object_type_display }} · {{ snapshot.published_at|date:"Y" }}</p>
+                    <h3><a href="{% url 'publications:public_detail' profile.public_slug snapshot.public_slug %}">{{ snapshot.title }}</a></h3>
+                    <p>{{ snapshot.summary|default:snapshot.content_markdown|striptags|truncatechars:180 }}</p>
+                    {% if snapshot.public_project_name %}<span class="project-label">{{ snapshot.public_project_name }}</span>{% endif %}
+                </article>
+            {% empty %}<p class="empty-public">尚未发布公开内容。</p>{% endfor %}
+        </div>
+    </section>
+</main>

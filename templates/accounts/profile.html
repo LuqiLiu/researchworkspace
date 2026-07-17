@@ -2,11 +2,14 @@
 {% block title %}设置 · Research Workspace Lite{% endblock %}
 {% block content %}
 <main class="content-narrow">
-    <div class="page-heading"><p class="kicker">Research identity</p><h1>个人设置</h1><p>这些信息仅用于你的工作空间；公开主页将在后续阶段单独发布。</p></div>
-    <form method="post" class="panel form-panel">
+    <div class="page-heading"><p class="kicker">Research identity</p><h1>个人设置</h1><p>维护工作空间身份，并自主决定是否启用公开学术主页。</p></div>
+    {% if user.profile.public_enabled and user.profile.public_slug %}
+        <section class="card publication-status"><span class="status-dot"></span> 公开主页已启用 · <a href="{% url 'publications:public_profile' user.profile.public_slug %}" target="_blank" rel="noopener">查看公开页面</a></section>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data" class="panel form-panel">
         {% csrf_token %}
         {{ form.as_p }}
-        <div class="form-actions"><button type="submit">保存资料</button><a class="button secondary" href="{% url 'accounts:password_change' %}">修改密码</a></div>
+        <div class="form-actions"><button type="submit">保存资料</button><a class="button secondary" href="{% url 'publications:manage_list' %}">管理公开内容</a><a class="button secondary" href="{% url 'accounts:password_change' %}">修改密码</a></div>
     </form>
 </main>
 {% endblock %}

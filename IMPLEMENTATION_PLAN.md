@@ -1,8 +1,9 @@
 # Delivery plan
 
-Stages 0–3 are complete. The application now provides a private research
-workspace, selective collaboration, and a paper-centred research workflow
-while preserving the same lightweight deployment architecture.
+Stages 0–4 are complete. The application now provides a private research
+workspace, selective collaboration, a paper-centred research workflow, and
+opt-in public academic profiles while preserving the same lightweight
+deployment architecture.
 
 ## Architecture
 
@@ -48,8 +49,22 @@ while preserving the same lightweight deployment architecture.
 - A responsive, research-focused visual system built with local templates and
   CSS, without adding a Node.js production runtime.
 
-## Next candidate scope
+## Stage 4 delivered
 
-- Curated publication snapshots and explicit public-release controls.
-- Richer project overview metrics and saved searches.
-- Optional asynchronous enrichment only if operating scale demonstrates a need.
+- Extended academic profiles with avatar, affiliation, position, research
+  interests, scholarly links, and an explicit public enable switch.
+- Independent publication snapshots with owner-only edit and preview flows.
+- Publish, update, and withdrawal controls with audit records.
+- Public profile, publication index, and individual note URLs under `/u/`.
+- Metadata whitelisting that excludes comments, shares, private tags, private
+  BibTeX notes, and unsafe external links.
+- Explicit attachment rights confirmation and storage-level copies for public
+  downloads; private attachment paths are never exposed.
+- Publish-time checks for common secret, credential, and server-path patterns.
+- Basic canonical, Open Graph, robots, and search-indexing controls.
+
+## Next candidate scope: Stage 5
+
+- Complete a clean-environment backup and restore rehearsal.
+- Add resource-limit and restart-recovery verification for the three services.
+- Finish the administrator operations guide and disk-capacity checks.

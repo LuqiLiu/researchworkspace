@@ -5,7 +5,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#173c3a">
+    <meta name="description" content="{% block meta_description %}Private, focused research workspace.{% endblock %}">
+    <meta name="robots" content="{% block meta_robots %}noindex,nofollow{% endblock %}">
     <title>{% block title %}Research Workspace Lite{% endblock %}</title>
+    {% block extra_head %}{% endblock %}
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
@@ -41,6 +44,9 @@
                 </a>
                 <a class="{% if request.resolver_match.url_name == 'search' %}active{% endif %}" href="{% url 'research_objects:search' %}">
                     <span class="nav-icon">⌕</span><span>全局搜索</span>
+                </a>
+                <a class="{% if request.resolver_match.namespace == 'publications' %}active{% endif %}" href="{% url 'publications:manage_list' %}">
+                    <span class="nav-icon">◎</span><span>我的主页</span>
                 </a>
             </nav>
 

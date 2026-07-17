@@ -1,0 +1,40 @@
+<main class="public-note-page {% if preview %}preview-mode{% endif %}">
+    {% if preview %}
+        <div class="preview-banner">
+            <div><strong>公开预览</strong><span>{% if snapshot.is_published %}当前版本已发布{% else %}当前仍是草稿{% endif %}</span></div>
+            <div class="button-group">
+                <a class="button secondary" href="{% url 'publications:edit_from_source' snapshot.source_object.pk %}">编辑快照</a>
+                {% if snapshot.is_published %}
+                    <form method="post" action="{% url 'publications:withdraw' snapshot.pk %}">{% csrf_token %}<button class="danger" type="submit">撤下</button></form>
+                {% else %}
+                    <form method="post" action="{% url 'publications:publish' snapshot.pk %}">{% csrf_token %}<button type="submit" {% if sensitive_findings %}disabled{% endif %}>确认发布</button></form>
+                {% endif %}
+            </div>
+        </div>
+        {% if sensitive_findings %}<section class="sensitive-warning"><strong>发布已锁定</strong><p>请返回编辑并处理：{{ sensitive_findings|join:"、" }}。</p></section>{% endif %}
+    {% endif %}
+    <article class="public-note">
+        <header class="public-note-header">
+            {% if not preview %}<a class="back-link" href="{% url 'publications:public_profile' profile.public_slug %}">← {{ profile.display_name|default:profile.user.username }}</a>{% endif %}
+            <p class="kicker">{{ snapshot.source_object.get_object_type_display }}{% if snapshot.public_project_name %} · {{ snapshot.public_project_name }}{% endif %}</p>
+            <h1>{{ snapshot.title }}</h1>
+            {% if snapshot.summary %}<p class="public-summary">{{ snapshot.summary }}</p>{% endif %}
+            <p class="public-byline">{{ profile.display_name|default:profile.user.username }} · {% if snapshot.published_at %}{{ snapshot.published_at|date:"Y年m月d日" }}{% else %}尚未发布{% endif %}</p>
+        </header>
+        {% if snapshot.cover_image %}<figure class="public-cover"><img src="{% if preview %}{% url 'publications:preview_cover' snapshot.pk %}{% else %}{% url 'publications:snapshot_cover' snapshot.pk %}{% endif %}" alt="{{ snapshot.title }} 封面"></figure>{% endif %}
+        {% if snapshot.metadata_json %}
+            <section class="public-citation">
+                {% if snapshot.metadata_json.authors %}<p><strong>作者</strong> {{ snapshot.metadata_json.authors|join:", " }}</p>{% endif %}
+                {% if snapshot.metadata_json.journal %}<p><strong>期刊/会议</strong> {{ snapshot.metadata_json.journal }}</p>{% endif %}
+                {% if snapshot.metadata_json.year %}<p><strong>年份</strong> {{ snapshot.metadata_json.year }}</p>{% endif %}
+                {% if snapshot.metadata_json.doi %}<p><strong>DOI</strong> <a href="https://doi.org/{{ snapshot.metadata_json.doi }}" rel="noopener">{{ snapshot.metadata_json.doi }}</a></p>{% endif %}
+                {% if snapshot.metadata_json.external_url %}<p><a href="{{ snapshot.metadata_json.external_url }}" rel="noopener">访问外部来源 ↗</a></p>{% endif %}
+            </section>
+        {% endif %}
+        <div class="public-note-content markdown">{{ snapshot.content_html|safe }}</div>
+        {% if snapshot.public_project_summary %}<section class="public-project-context"><p class="kicker">Project context</p><h2>{{ snapshot.public_project_name|default:"相关项目" }}</h2><p>{{ snapshot.public_project_summary|linebreaksbr }}</p></section>{% endif %}
+        {% if snapshot.public_attachments.exists %}
+            <section class="public-downloads"><h2>公开附件</h2><ul>{% for attachment in snapshot.public_attachments.all %}<li><a href="{% if preview %}{% url 'publications:preview_attachment' attachment.pk %}{% else %}{% url 'publications:public_attachment' attachment.pk %}{% endif %}">{{ attachment.original_name }}</a> <span>{{ attachment.size|filesizeformat }}</span></li>{% endfor %}</ul></section>
+        {% endif %}
+    </article>
+</main>

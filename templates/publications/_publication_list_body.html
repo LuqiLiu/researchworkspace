@@ -1,0 +1,20 @@
+<main class="academic-profile public-list-page">
+    <header class="public-page-heading">
+        <p><a href="{% url 'publications:public_profile' profile.public_slug %}">← {{ profile.display_name|default:profile.user.username }}</a></p>
+        <p class="kicker">Publications</p>
+        <h1>论文与研究成果</h1>
+    </header>
+    <div class="publication-index">
+        {% for snapshot in snapshots %}
+            <article>
+                <time>{% if snapshot.metadata_json.year %}{{ snapshot.metadata_json.year }}{% else %}{{ snapshot.published_at|date:"Y" }}{% endif %}</time>
+                <div>
+                    <h2><a href="{% url 'publications:public_detail' profile.public_slug snapshot.public_slug %}">{{ snapshot.title }}</a></h2>
+                    {% if snapshot.metadata_json.authors %}<p>{{ snapshot.metadata_json.authors|join:", " }}</p>{% endif %}
+                    <p class="meta">{{ snapshot.metadata_json.journal }}{% if snapshot.metadata_json.doi %} · DOI {{ snapshot.metadata_json.doi }}{% endif %}</p>
+                    {% if snapshot.summary %}<p>{{ snapshot.summary }}</p>{% endif %}
+                </div>
+            </article>
+        {% empty %}<p class="empty-public">尚未发布论文。</p>{% endfor %}
+    </div>
+</main>

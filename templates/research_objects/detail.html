@@ -11,6 +11,7 @@
         <div class="button-group">
             {% if can_edit %}<a class="button" href="{% url 'research_objects:edit' object.pk %}">编辑</a>{% endif %}
             <a class="button secondary" href="{% url 'research_objects:export' object.pk %}">导出 Markdown</a>
+            {% if can_manage %}<a class="button secondary" href="{% url 'publications:edit_from_source' object.pk %}">{% if publication_snapshot %}编辑公开快照{% else %}发布到个人主页{% endif %}</a>{% endif %}
         </div>
     </div>
     <div class="content-grid">
@@ -25,6 +26,9 @@
             <section class="card">
                 <h2>状态</h2>
                 <p>{{ object.get_status_display }}</p>
+                {% if publication_snapshot %}
+                    <p><span class="publication-badge {% if publication_snapshot.is_published %}published{% endif %}">{% if publication_snapshot.is_published %}已发布快照{% else %}公开草稿{% endif %}</span></p>
+                {% endif %}
                 {% if object.project %}
                     <p><a href="{% url 'projects:detail' object.project.pk %}">{{ object.project.name }}</a>{% if object.is_shared_with_project %} · 项目成员可见{% endif %}</p>
                 {% endif %}
