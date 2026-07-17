@@ -1,20 +1,20 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools==80.9.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "research-workspace-lite"
-version = "0.1.0"
+version = "1.0.0"
 description = "Lightweight private research workspace"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "Django>=5.2,<5.3",
-    "bleach>=6.2,<7",
-    "gunicorn>=23,<24",
-    "Markdown>=3.8,<4",
-    "psycopg[binary]>=3.2,<3.3",
-    "pypdf>=6.7,<7",
+    "Django==5.2.16",
+    "bleach==6.4.0",
+    "gunicorn==23.0.0",
+    "Markdown==3.10.2",
+    "psycopg[binary]==3.2.13",
+    "pypdf==6.14.2",
 ]
 
 [project.optional-dependencies]

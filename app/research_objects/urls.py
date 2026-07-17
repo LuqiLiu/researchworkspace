@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.object_list, name="list"),
     path("new/", views.object_create, name="create"),
     path("search/", views.search, name="search"),
+    path("export/all/", views.workspace_export, name="workspace_export"),
     path("<int:pk>/", views.object_detail, name="detail"),
     path("<int:pk>/edit/", views.object_edit, name="edit"),
     path("<int:pk>/autosave/", views.object_autosave, name="autosave"),

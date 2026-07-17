@@ -1,4 +1,4 @@
-# Research Workspace Lite
+# Research Workspace Lite V1
 
 Private, lightweight research workspace for collecting papers, developing ideas,
 recording experiments, connecting research evidence, and publishing selected
@@ -90,11 +90,12 @@ admin.
 
 ## Stage 3 research workflow
 
-- DOI and PDF paper import with Crossref metadata enrichment
+- DOI, PDF and arXiv paper import with source/confidence provenance
 - A safe fallback that still creates a paper when Crossref is unavailable
 - PDF metadata and first-two-page text extraction with `pypdf` (no OCR)
 - Duplicate suggestions based on DOI, normalized title, and PDF SHA-256
 - BibTeX generation and download
+- Owner correction of all core bibliographic fields
 - Typed links between papers, ideas, experiments, issues, and other objects
 - Expanded permission-aware search across metadata, tags, projects, and comments
 - Purpose-built templates for paper, idea, experiment, and issue records
@@ -136,6 +137,16 @@ Validate the production Compose model:
 ```bash
 docker compose --env-file .env -f compose.yml config
 ```
+
+## V1 portability and safety
+
+- 512 MiB default per-user attachment quota with atomic accounting
+- Personal workspace ZIP, paper CSV/BibTeX, and public-profile ZIP exports
+- Optimistic edit locking with explicit HTTP 409 conflict handling
+- Field-level bibliographic provenance and manual correction
+- Pinned Python dependencies, SRI-protected browser dependencies, and CSP
+- Immutable release image naming, documented rollback, guarded format-2 restore
+- Audited ownership transfer from a disabled account to an active successor
 
 ## Backups, restores, and upgrades
 

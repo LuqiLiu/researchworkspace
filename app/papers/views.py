@@ -1,3 +1,6 @@
+import csv
+from io import StringIO
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -8,8 +11,13 @@ from django.views.decorators.http import require_GET, require_http_methods
 from app.research_objects.models import ResearchObject
 from app.research_objects.services import visible_objects
 
-from .forms import PaperImportForm
+from .forms import PaperImportForm, PaperMetadataForm
 from .services import import_paper
+
+
+def _csv_cell(value):
+    text = str(value or "")
+    return f"'{text}" if text.startswith(("=", "+", "-", "@")) else text
 
 
 @login_required
@@ -53,4 +61,82 @@ def bibtex_export(request, pk):
     )
     filename = slugify(obj.title)[:80] or f"paper-{obj.pk}"
     response["Content-Disposition"] = f'attachment; filename="{filename}.bib"'
+    return response
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def metadata_edit(request, pk):
+    obj = get_object_or_404(
+        ResearchObject.objects.active(),
+        pk=pk,
+        owner=request.user,
+        object_type=ResearchObject.ObjectType.PAPER,
+    )
+    form = PaperMetadataForm(
+        request.POST or None,
+        research_object=obj,
+    )
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "文献题录已由你手动校正。")
+        return redirect("research_objects:detail", pk=obj.pk)
+    return render(
+        request,
+        "papers/metadata_form.html",
+        {"form": form, "object": obj},
+    )
+
+
+@login_required
+@require_GET
+def csv_export(request):
+    output = StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "title",
+            "authors",
+            "year",
+            "journal",
+            "doi",
+            "external_url",
+            "abstract",
+            "personal_note",
+            "tags",
+            "created_at",
+            "updated_at",
+        ]
+    )
+    papers = (
+        ResearchObject.objects.active()
+        .filter(owner=request.user, object_type=ResearchObject.ObjectType.PAPER)
+        .prefetch_related("tags")
+        .order_by("pk")
+    )
+    for paper in papers:
+        metadata = paper.metadata_json or {}
+        authors = metadata.get("authors", [])
+        if not isinstance(authors, list):
+            authors = [authors]
+        writer.writerow(
+            [
+                _csv_cell(paper.title),
+                _csv_cell("; ".join(str(author) for author in authors)),
+                metadata.get("year") or "",
+                _csv_cell(metadata.get("journal")),
+                _csv_cell(metadata.get("doi")),
+                _csv_cell(metadata.get("external_url")),
+                _csv_cell(metadata.get("abstract")),
+                _csv_cell(paper.content_markdown),
+                _csv_cell("; ".join(paper.tags.values_list("name", flat=True))),
+                paper.created_at.isoformat(),
+                paper.updated_at.isoformat(),
+            ]
+        )
+    response = HttpResponse(
+        "\ufeff" + output.getvalue(),
+        content_type="text/csv; charset=utf-8",
+    )
+    response["Content-Disposition"] = 'attachment; filename="papers.csv"'
     return response

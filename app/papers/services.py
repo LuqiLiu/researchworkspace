@@ -2,6 +2,7 @@ import hashlib
 import html
 import json
 import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
@@ -13,8 +14,18 @@ from django.db import transaction
 from pypdf import PdfReader
 
 from app.research_objects.models import Attachment, ResearchObject
+from app.accounts.services import reserve_storage
 
 DOI_PATTERN = re.compile(r"10\.\d{4,9}/[-._;()/:A-Z0-9]+", re.IGNORECASE)
+ARXIV_PATTERN = re.compile(
+    r"(?:arxiv:\s*)?((?:[a-z-]+(?:\.[A-Z]{2})?/\d{7}|\d{4}\.\d{4,5})(?:v\d+)?)",
+    re.IGNORECASE,
+)
+
+
+def safe_metadata_text(value, max_length):
+    value = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", str(value or ""))
+    return re.sub(r"\s+", " ", value).strip()[:max_length]
 
 
 def normalize_doi(value):
@@ -23,6 +34,21 @@ def normalize_doi(value):
     value = re.sub(r"^doi:\s*", "", value, flags=re.I)
     match = DOI_PATTERN.search(value)
     return match.group(0).rstrip(".,;)").lower() if match else ""
+
+
+def normalize_arxiv_id(value):
+    match = ARXIV_PATTERN.search(value or "")
+    return match.group(1) if match else ""
+
+
+def _merge_metadata(metadata, incoming, *, source, confidence):
+    provenance = metadata.setdefault("metadata_provenance", {})
+    for name, value in incoming.items():
+        if name == "metadata_source" or value in (None, "", []):
+            continue
+        metadata[name] = value
+        provenance[name] = {"source": source, "confidence": confidence}
+    metadata["metadata_source"] = source
 
 
 def _plain_abstract(value):
@@ -61,13 +87,53 @@ def crossref_metadata(doi):
     year = date_parts[0][0] if date_parts and date_parts[0] else None
     return {
         "doi": normalize_doi(message.get("DOI", normalized)),
-        "title": (message.get("title") or [""])[0],
-        "authors": authors,
+        "title": safe_metadata_text((message.get("title") or [""])[0], 240),
+        "authors": [safe_metadata_text(author, 200) for author in authors[:100]],
         "year": year,
-        "journal": (message.get("container-title") or [""])[0],
+        "journal": safe_metadata_text((message.get("container-title") or [""])[0], 240),
         "abstract": _plain_abstract(message.get("abstract", "")),
         "external_url": message.get("URL", ""),
         "metadata_source": "crossref",
+    }
+
+
+def arxiv_metadata(arxiv_id):
+    normalized = normalize_arxiv_id(arxiv_id)
+    if not normalized:
+        return {}
+    url = f"https://export.arxiv.org/api/query?id_list={quote(normalized, safe='/')}"
+    request = Request(
+        url,
+        headers={"User-Agent": "ResearchWorkspaceLite/1.0"},
+    )
+    try:
+        with urlopen(request, timeout=settings.CROSSREF_TIMEOUT_SECONDS) as response:
+            root = ET.parse(response).getroot()
+    except (HTTPError, URLError, TimeoutError, ET.ParseError, OSError):
+        return {}
+    atom = {"atom": "http://www.w3.org/2005/Atom"}
+    entry = root.find("atom:entry", atom)
+    if entry is None:
+        return {}
+
+    def text(path):
+        node = entry.find(path, atom)
+        return node.text.strip() if node is not None and node.text else ""
+
+    authors = [
+        safe_metadata_text(node.text, 200)
+        for node in entry.findall("atom:author/atom:name", atom)
+        if node.text
+    ][:100]
+    published = text("atom:published")
+    return {
+        "arxiv_id": normalized,
+        "title": safe_metadata_text(text("atom:title"), 240),
+        "authors": authors,
+        "year": int(published[:4]) if published[:4].isdigit() else None,
+        "abstract": safe_metadata_text(text("atom:summary"), 10000),
+        "external_url": f"https://arxiv.org/abs/{normalized}",
+        "metadata_source": "arxiv",
     }
 
 
@@ -76,8 +142,8 @@ def pdf_metadata(upload):
     reader = PdfReader(upload, strict=False)
     metadata = reader.metadata
     extracted = {
-        "title": str(getattr(metadata, "title", "") or "").strip(),
-        "authors": [str(getattr(metadata, "author", "") or "").strip()],
+        "title": safe_metadata_text(getattr(metadata, "title", ""), 240),
+        "authors": [safe_metadata_text(getattr(metadata, "author", ""), 200)],
         "pdf_page_count": len(reader.pages),
         "metadata_source": "pdf",
     }
@@ -153,7 +219,14 @@ def import_paper(*, owner, cleaned_data):
     metadata = {
         "doi": supplied_doi,
         "external_url": cleaned_data.get("external_url") or "",
+        "metadata_provenance": {},
     }
+    for name in ("doi", "external_url"):
+        if metadata[name]:
+            metadata["metadata_provenance"][name] = {
+                "source": "manual",
+                "confidence": "high",
+            }
     pdf_sha256 = ""
     pdf_bytes = b""
     if upload:
@@ -161,17 +234,35 @@ def import_paper(*, owner, cleaned_data):
         pdf_sha256 = hashlib.sha256(pdf_bytes).hexdigest()
         upload.seek(0)
         try:
-            metadata.update({k: v for k, v in pdf_metadata(upload).items() if v})
+            _merge_metadata(
+                metadata,
+                pdf_metadata(upload),
+                source="pdf",
+                confidence="medium",
+            )
         except Exception as exc:
             metadata["pdf_metadata_error"] = exc.__class__.__name__
     doi = supplied_doi or metadata.get("doi", "")
-    remote = crossref_metadata(doi) if doi else {}
-    metadata.update({k: v for k, v in remote.items() if v})
-    title = cleaned_data.get("title") or metadata.get("title")
+    arxiv_id = normalize_arxiv_id(cleaned_data.get("external_url"))
+    remote = crossref_metadata(doi) if doi else arxiv_metadata(arxiv_id)
+    if remote:
+        source = remote.get("metadata_source", "external")
+        _merge_metadata(metadata, remote, source=source, confidence="high")
+    title = safe_metadata_text(cleaned_data.get("title") or metadata.get("title"), 240)
     if not title and upload:
         title = Path(upload.name).stem
     title = title or doi or cleaned_data.get("external_url") or "未命名文献"
     metadata["title"] = title
+    if cleaned_data.get("title"):
+        metadata["metadata_provenance"]["title"] = {
+            "source": "manual",
+            "confidence": "high",
+        }
+    elif "title" not in metadata["metadata_provenance"]:
+        metadata["metadata_provenance"]["title"] = {
+            "source": "derived",
+            "confidence": "low",
+        }
     metadata["normalized_title"] = re.sub(r"\W+", "", title.casefold())
     metadata["bibtex"] = make_bibtex(metadata)
     duplicates = list(duplicate_candidates(owner, metadata, pdf_sha256))
@@ -183,6 +274,7 @@ def import_paper(*, owner, cleaned_data):
         metadata_json=metadata,
     )
     if upload:
+        reserve_storage(owner, len(pdf_bytes))
         Attachment.objects.create(
             owner=owner,
             research_object=obj,

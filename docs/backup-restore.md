@@ -24,6 +24,11 @@ Each backup contains:
 - `manifest.txt`
 - `SHA256SUMS`
 
+The V1 format-2 manifest identifies both the source Compose project and
+database, plus the creation time, Compose file and Git revision. Restore
+refuses legacy or unidentified manifests; create a fresh V1 backup before a
+production upgrade.
+
 The script writes to a partial directory, checks both gzip streams, writes
 SHA-256 checksums, and only then publishes the backup directory. It keeps seven
 daily and four weekly copies by default. Weekly entries use hard links when the
@@ -40,12 +45,16 @@ verifies checksums, stops Web traffic, restores the database schema and media,
 runs migrations, performs an application check, and records an audit event.
 
 ```bash
-./scripts/restore.sh ./backups/daily/20260717T120000Z --yes
+export COMPOSE_PROJECT_NAME=research_workspace
+./scripts/restore.sh ./backups/daily/20260717T120000Z --dry-run research_workspace
+./scripts/restore.sh ./backups/daily/20260717T120000Z --yes research_workspace
 ./scripts/healthcheck.sh
 ```
 
 Do not run restore against production while users are active. Confirm the
-Compose project name and backup timestamp before typing `--yes`.
+Compose project name, manifest project/database and backup timestamp before
+typing `--yes`. The command refuses a missing or mismatched identity. Only the
+isolated recovery drill enables the explicit cross-project restore override.
 
 ## Isolated recovery drill
 

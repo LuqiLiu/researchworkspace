@@ -5,6 +5,8 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils.text import slugify
 
+from app.accounts.services import reserve_storage
+
 from .models import PublicationSnapshot, PublishedAttachment
 
 PUBLIC_METADATA_FIELDS = (
@@ -101,5 +103,6 @@ def sync_public_attachments(snapshot, selected_attachments):
             size=source.size,
             sha256=source.sha256,
         )
+        reserve_storage(snapshot.owner, source.size)
         copy.file.save(copy.original_name, content, save=False)
         copy.save()

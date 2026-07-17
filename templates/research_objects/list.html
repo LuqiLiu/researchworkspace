@@ -9,6 +9,8 @@
             <p>记录线索、文献、实验与尚未成形的想法。</p>
         </div>
         <div class="button-group">
+            <a class="button secondary" href="{% url 'research_objects:workspace_export' %}">导出全部 ZIP</a>
+            <a class="button secondary" href="{% url 'papers:csv_export' %}">文献 CSV</a>
             <a class="button secondary" href="{% url 'papers:import' %}">⌁ 收录文献</a>
             <a class="button" href="{% url 'research_objects:create' %}">＋ 新建记录</a>
         </div>

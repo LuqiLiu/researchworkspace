@@ -1,3 +1,7 @@
+import json
+import shutil
+import tempfile
+import zipfile
 from pathlib import Path
 
 from django.contrib import messages
@@ -7,6 +11,7 @@ from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from django.utils.text import slugify
 
 from app.accounts.models import UserProfile
 from app.audit.models import SecurityAuditLog
@@ -61,6 +66,92 @@ def manage_list(request):
         "source_object"
     )
     return render(request, "publications/manage_list.html", {"snapshots": snapshots})
+
+
+@login_required
+@require_GET
+def public_profile_export(request):
+    profile = request.user.profile
+    snapshots = list(
+        PublicationSnapshot.objects.filter(
+            owner=request.user,
+            is_published=True,
+        )
+        .prefetch_related("public_attachments")
+        .order_by("pk")
+    )
+    archive_file = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024)
+    manifest = {
+        "format": "research-workspace-lite-public-v1",
+        "profile": {
+            "display_name": profile.display_name,
+            "affiliation": profile.affiliation,
+            "position": profile.position,
+            "bio": profile.bio,
+            "research_interests": profile.research_interests,
+            "orcid": profile.orcid,
+            "contact_email": profile.contact_email,
+            "public_slug": profile.public_slug,
+        },
+        "snapshots": [],
+    }
+    with zipfile.ZipFile(
+        archive_file,
+        mode="w",
+        compression=zipfile.ZIP_DEFLATED,
+    ) as archive:
+        for snapshot in snapshots:
+            safe_title = slugify(snapshot.title, allow_unicode=True)[:80] or "publication"
+            markdown_path = f"publications/{snapshot.pk}-{safe_title}.md"
+            archive.writestr(markdown_path, snapshot.content_markdown.encode("utf-8"))
+            public_files = []
+            for attachment in snapshot.public_attachments.all():
+                original_name = Path(attachment.original_name).name
+                attachment_path = (
+                    f"public-files/{snapshot.pk}/{attachment.pk}-{original_name}"
+                )
+                exported = False
+                if attachment.file.storage.exists(attachment.file.name):
+                    with attachment.file.open("rb") as source:
+                        with archive.open(attachment_path, "w") as destination:
+                            shutil.copyfileobj(source, destination, length=1024 * 1024)
+                    exported = True
+                public_files.append(
+                    {
+                        "name": original_name,
+                        "path": attachment_path if exported else None,
+                        "size": attachment.size,
+                        "sha256": attachment.sha256,
+                    }
+                )
+            manifest["snapshots"].append(
+                {
+                    "title": snapshot.title,
+                    "summary": snapshot.summary,
+                    "public_slug": snapshot.public_slug,
+                    "public_project_name": snapshot.public_project_name,
+                    "public_project_summary": snapshot.public_project_summary,
+                    "metadata": snapshot.metadata_json,
+                    "published_at": (
+                        snapshot.published_at.isoformat()
+                        if snapshot.published_at
+                        else None
+                    ),
+                    "markdown_path": markdown_path,
+                    "attachments": public_files,
+                }
+            )
+        archive.writestr(
+            "profile.json",
+            json.dumps(manifest, ensure_ascii=False, indent=2).encode("utf-8"),
+        )
+    archive_file.seek(0)
+    return FileResponse(
+        archive_file,
+        as_attachment=True,
+        filename=f"public-profile-{profile.public_slug or request.user.username}.zip",
+        content_type="application/zip",
+    )
 
 
 @login_required

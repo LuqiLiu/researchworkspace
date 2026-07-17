@@ -44,10 +44,12 @@ gzip -t "${WORKING}/database.sql.gz"
 gzip -t "${WORKING}/media.tar.gz"
 
 DATABASE_NAME="$(compose exec -T db printenv POSTGRES_DB | tr -d '\r')"
+PROJECT_NAME="$(compose config | sed -n 's/^name: //p' | head -n 1)"
 GIT_REVISION="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 {
-    echo "format_version=1"
+    echo "format_version=2"
     echo "created_at=${TIMESTAMP}"
+    echo "compose_project=${PROJECT_NAME}"
     echo "compose_file=${COMPOSE_FILE}"
     echo "database=${DATABASE_NAME}"
     echo "git_revision=${GIT_REVISION}"

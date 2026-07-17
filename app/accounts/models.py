@@ -5,6 +5,8 @@ from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 
+DEFAULT_USER_STORAGE_QUOTA_BYTES = 512 * 1024 * 1024
+
 
 def profile_avatar_upload_path(instance, filename):
     suffix = Path(filename).suffix.lower()
@@ -35,6 +37,14 @@ class UserProfile(models.Model):
         null=True,
         blank=True,
     )
+    storage_quota_bytes = models.PositiveBigIntegerField(
+        default=DEFAULT_USER_STORAGE_QUOTA_BYTES,
+    )
+    storage_used_bytes = models.PositiveBigIntegerField(default=0, editable=False)
+
+    @property
+    def storage_remaining_bytes(self):
+        return max(self.storage_quota_bytes - self.storage_used_bytes, 0)
 
     def save(self, *args, **kwargs):
         if not self.public_slug:

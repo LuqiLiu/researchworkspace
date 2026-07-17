@@ -12,6 +12,11 @@ compose() {
     fi
 }
 
+if compose config --images | grep -Eq '(^|:)latest$'; then
+    echo "Set WEB_IMAGE to an immutable release tag or digest, not latest." >&2
+    exit 2
+fi
+
 compose config --quiet
 compose build --pull web
 compose up -d

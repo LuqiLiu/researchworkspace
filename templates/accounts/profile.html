@@ -6,6 +6,9 @@
     {% if user.profile.public_enabled and user.profile.public_slug %}
         <section class="card publication-status"><span class="status-dot"></span> 公开主页已启用 · <a href="{% url 'publications:public_profile' user.profile.public_slug %}" target="_blank" rel="noopener">查看公开页面</a></section>
     {% endif %}
+    <section class="card publication-status">
+        <strong>附件存储</strong> · 已用 {{ user.profile.storage_used_bytes|filesizeformat }} / {{ user.profile.storage_quota_bytes|filesizeformat }}，剩余 {{ user.profile.storage_remaining_bytes|filesizeformat }}
+    </section>
     <form method="post" enctype="multipart/form-data" class="panel form-panel">
         {% csrf_token %}
         {{ form.as_p }}

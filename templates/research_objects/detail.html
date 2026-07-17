@@ -101,6 +101,7 @@
             {% if object.metadata_json.doi %}<p><strong>DOI</strong> {{ object.metadata_json.doi }}</p>{% endif %}
             {% if object.metadata_json.abstract %}<p><strong>摘要</strong> {{ object.metadata_json.abstract }}</p>{% endif %}
             {% if object.metadata_json.bibtex %}<a class="button secondary" href="{% url 'papers:bibtex' object.pk %}">导出 BibTeX</a>{% endif %}
+            {% if can_manage %}<a class="button secondary" href="{% url 'papers:metadata_edit' object.pk %}">校正题录</a>{% endif %}
         </section>
     {% endif %}
     <section class="card relations-panel">

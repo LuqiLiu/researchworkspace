@@ -74,7 +74,18 @@ deployment architecture.
 - Expanded deployment, firewall, restart, backup, incident, and administrator
   documentation.
 
-## Next candidate scope
+## V1 release-candidate closure delivered
 
-- Operate the V1 with real users and collect maintenance feedback.
-- Add capabilities only when observed use demonstrates a concrete need.
+- Production HTTPS readiness, private-admin boundaries, and optimistic edit
+  conflict handling close the three original P0 findings.
+- Quota accounting, PDF validation, arXiv/Crossref provenance, manual metadata
+  correction, and all required user exports close the data-portability findings.
+- Account ownership transfer is transactional and audited.
+- Dependencies and browser scripts are pinned; CSP/SRI limit third-party code.
+- Release images use explicit tags/digests with an executable rollback path.
+- Format-2 backups bind source project/database identity, restore requires a
+  dry-run/explicit target, and cross-project restore is isolated to the drill.
+
+The remaining release action is environment-specific production verification:
+DNS/TLS, firewall, host reboot, off-host encrypted backup and restore, and a
+short real-user acceptance session.

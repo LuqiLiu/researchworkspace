@@ -306,7 +306,6 @@ class PermissionMatrixTests(TestCase):
         self.viewer_share.save(update_fields=["include_attachments"])
         response = self._get_as(self.viewer, url)
         self.assertEqual(response.status_code, 200)
-        response.close()
 
     def test_revoked_user_cannot_search_or_read_comments(self):
         comment = Comment.objects.create(

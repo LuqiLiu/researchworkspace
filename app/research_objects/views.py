@@ -1,7 +1,13 @@
 import hashlib
+import json
+import shutil
+import tempfile
+import zipfile
+from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -9,6 +15,7 @@ from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from app.comments.forms import CommentForm
+from app.accounts.services import StorageQuotaExceeded, reserve_storage
 from app.sharing.forms import ObjectShareForm
 from app.sharing.services import (
     can_access_attachment,
@@ -282,6 +289,81 @@ def object_export(request, pk):
 
 
 @login_required
+@require_GET
+def workspace_export(request):
+    objects = list(
+        ResearchObject.objects.active()
+        .filter(owner=request.user)
+        .select_related("project")
+        .prefetch_related("tags", "attachments")
+        .order_by("pk")
+    )
+    manifest = {
+        "format": "research-workspace-lite-v1",
+        "username": request.user.get_username(),
+        "objects": [],
+    }
+    archive_file = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024)
+    with zipfile.ZipFile(
+        archive_file,
+        mode="w",
+        compression=zipfile.ZIP_DEFLATED,
+    ) as archive:
+        for obj in objects:
+            safe_title = slugify(obj.title, allow_unicode=True)[:80] or "research-object"
+            markdown_path = f"objects/{obj.pk}-{safe_title}.md"
+            archive.writestr(markdown_path, obj.content_markdown.encode("utf-8"))
+            attachment_records = []
+            for attachment in obj.attachments.all():
+                original_name = Path(attachment.original_name).name
+                attachment_path = (
+                    f"attachments/{obj.pk}/{attachment.pk}-{original_name}"
+                )
+                exported = False
+                if attachment.file.storage.exists(attachment.file.name):
+                    with attachment.file.open("rb") as source:
+                        with archive.open(attachment_path, "w") as destination:
+                            shutil.copyfileobj(source, destination, length=1024 * 1024)
+                    exported = True
+                attachment_records.append(
+                    {
+                        "id": attachment.pk,
+                        "name": original_name,
+                        "path": attachment_path if exported else None,
+                        "size": attachment.size,
+                        "sha256": attachment.sha256,
+                    }
+                )
+            manifest["objects"].append(
+                {
+                    "id": obj.pk,
+                    "type": obj.object_type,
+                    "title": obj.title,
+                    "markdown_path": markdown_path,
+                    "metadata": obj.metadata_json,
+                    "project": obj.project.name if obj.project else None,
+                    "tags": list(obj.tags.values_list("name", flat=True)),
+                    "favorite": obj.is_favorite,
+                    "archived": obj.is_archived,
+                    "created_at": obj.created_at.isoformat(),
+                    "updated_at": obj.updated_at.isoformat(),
+                    "attachments": attachment_records,
+                }
+            )
+        archive.writestr(
+            "manifest.json",
+            json.dumps(manifest, ensure_ascii=False, indent=2).encode("utf-8"),
+        )
+    archive_file.seek(0)
+    return FileResponse(
+        archive_file,
+        as_attachment=True,
+        filename=f"research-workspace-{request.user.get_username()}.zip",
+        content_type="application/zip",
+    )
+
+
+@login_required
 def search(request):
     query = request.GET.get("q", "")
     return render(
@@ -309,7 +391,13 @@ def attachment_upload(request, pk):
         attachment.mime_type = upload.content_type or ""
         attachment.size = upload.size
         attachment.sha256 = digest.hexdigest()
-        attachment.save()
+        try:
+            with transaction.atomic():
+                reserve_storage(request.user, upload.size)
+                attachment.save()
+        except StorageQuotaExceeded as exc:
+            messages.error(request, str(exc))
+            return redirect("research_objects:detail", pk=obj.pk)
         messages.success(request, "附件已上传，仍保持私有。")
     else:
         messages.error(request, form.errors.as_text())

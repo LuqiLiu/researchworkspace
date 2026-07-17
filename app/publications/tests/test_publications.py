@@ -1,4 +1,7 @@
 import hashlib
+import json
+import zipfile
+from io import BytesIO
 from tempfile import TemporaryDirectory
 
 from django.contrib.auth import get_user_model
@@ -252,7 +255,6 @@ class PublicationSnapshotTests(TestCase):
         response = self.client.get(public_download)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Disposition"], 'attachment; filename="paper.pdf"')
-        response.close()
 
     def test_public_profile_and_robots_are_available_without_login(self):
         snapshot = self._create_draft()
@@ -267,3 +269,32 @@ class PublicationSnapshotTests(TestCase):
         robots = self.client.get(reverse("publications:robots"))
         self.assertContains(robots, "Allow: /u/")
         self.assertContains(robots, "Disallow: /")
+
+    def test_owner_can_export_only_published_public_profile_content(self):
+        snapshot = self._create_draft()
+        self._publish(snapshot)
+        private_source = ResearchObject.objects.create(
+            owner=self.owner,
+            title="Private draft source",
+            content_markdown="PRIVATE-DRAFT-CONTENT",
+        )
+        PublicationSnapshot.objects.create(
+            source_object=private_source,
+            owner=self.owner,
+            public_slug="private-draft",
+            title="Private draft",
+            content_markdown="PRIVATE-DRAFT-CONTENT",
+        )
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("publications:profile_export"))
+        self.assertEqual(response.status_code, 200)
+        payload = b"".join(response.streaming_content)
+        with zipfile.ZipFile(BytesIO(payload)) as archive:
+            manifest = json.loads(archive.read("profile.json"))
+            self.assertEqual(len(manifest["snapshots"]), 1)
+            self.assertEqual(manifest["snapshots"][0]["title"], "Public Result")
+            exported_markdown = archive.read(
+                manifest["snapshots"][0]["markdown_path"]
+            ).decode()
+            self.assertIn("A stable result", exported_markdown)
+            self.assertNotIn("PRIVATE-DRAFT-CONTENT", exported_markdown)

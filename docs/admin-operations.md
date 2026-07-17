@@ -21,6 +21,31 @@ technically capable of accessing stored data; users must be told this clearly.
   idempotent demo workspace. Use it only for local training, never as a shared
   production credential.
 
+### Ownership transfer
+
+If a researcher leaves, first disable the source account and confirm the active
+successor. Then run from a trusted server shell:
+
+```bash
+docker compose -f compose.yml exec web \
+  python manage.py transfer_user_data former_username successor_username --yes
+```
+
+The command runs in one database transaction, merges duplicate personal tags,
+resolves public-slug conflicts, transfers objects/projects/files/publications
+and charged storage, disables the former public profile, and writes an
+`OWNERSHIP_TRANSFERRED` audit event. It refuses active source accounts,
+inactive targets, insufficient target quota, missing `--yes`, or self-transfer.
+Keep the disabled source account so creator/comment history remains attributable.
+
+### Storage quotas
+
+Every user starts with a 512 MiB quota for private attachments/PDFs and copied
+public attachments. Administrators may adjust `storage_quota_bytes` on the
+user profile; current usage is read-only in Django admin. Avatar and cover
+images retain their separate form size/type limits and are not charged to this
+attachment quota.
+
 ## Daily checks
 
 ```bash

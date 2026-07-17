@@ -15,6 +15,10 @@ class SecurityAuditLog(models.Model):
         PUBLICATION_WITHDRAWN = "PUBLICATION_WITHDRAWN", "Publication withdrawn"
         BACKUP_CREATED = "BACKUP_CREATED", "Backup created"
         RESTORE_COMPLETED = "RESTORE_COMPLETED", "Restore completed"
+        OWNERSHIP_TRANSFERRED = (
+            "OWNERSHIP_TRANSFERRED",
+            "User data ownership transferred",
+        )
 
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL,

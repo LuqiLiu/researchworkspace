@@ -1,4 +1,7 @@
 import tempfile
+import json
+import zipfile
+from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -137,6 +140,33 @@ class PrivateWorkspaceTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode(), "# Secret\nresult 42")
 
+    def test_workspace_zip_contains_only_owned_active_content_and_attachments(self):
+        Attachment.objects.create(
+            owner=self.alice,
+            research_object=self.obj,
+            file=SimpleUploadedFile("result.txt", b"private result"),
+            original_name="result.txt",
+            mime_type="text/plain",
+            size=14,
+            sha256="1" * 64,
+        )
+        ResearchObject.objects.create(
+            owner=self.bob,
+            title="Bob secret",
+            content_markdown="must not export",
+        )
+        self.client.force_login(self.alice)
+        response = self.client.get(reverse("research_objects:workspace_export"))
+        self.assertEqual(response.status_code, 200)
+        payload = b"".join(response.streaming_content)
+        with zipfile.ZipFile(BytesIO(payload)) as archive:
+            manifest = json.loads(archive.read("manifest.json"))
+            names = archive.namelist()
+            self.assertEqual(len(manifest["objects"]), 1)
+            self.assertEqual(manifest["objects"][0]["title"], "Private experiment")
+            self.assertTrue(any(name.endswith("result.txt") for name in names))
+            self.assertNotIn(b"must not export", payload)
+
     def test_attachment_download_is_owner_only(self):
         attachment = Attachment.objects.create(
             owner=self.alice,
@@ -169,6 +199,40 @@ class PrivateWorkspaceTests(TestCase):
             files={"file": SimpleUploadedFile("payload.exe", b"MZ")}
         )
         self.assertFalse(form.is_valid())
+
+    def test_upload_is_rejected_when_user_quota_is_exceeded(self):
+        profile = self.alice.profile
+        profile.storage_quota_bytes = 3
+        profile.save(update_fields=["storage_quota_bytes"])
+        self.client.force_login(self.alice)
+        response = self.client.post(
+            reverse("research_objects:attachment_upload", args=[self.obj.pk]),
+            {"file": SimpleUploadedFile("result.txt", b"four")},
+        )
+        self.assertRedirects(
+            response,
+            reverse("research_objects:detail", args=[self.obj.pk]),
+        )
+        self.assertFalse(self.obj.attachments.exists())
+        profile.refresh_from_db()
+        self.assertEqual(profile.storage_used_bytes, 0)
+
+    def test_successful_upload_and_delete_update_storage_usage(self):
+        self.client.force_login(self.alice)
+        response = self.client.post(
+            reverse("research_objects:attachment_upload", args=[self.obj.pk]),
+            {"file": SimpleUploadedFile("result.txt", b"four")},
+        )
+        self.assertRedirects(
+            response,
+            reverse("research_objects:detail", args=[self.obj.pk]),
+        )
+        attachment = self.obj.attachments.get()
+        self.alice.profile.refresh_from_db()
+        self.assertEqual(self.alice.profile.storage_used_bytes, 4)
+        attachment.delete()
+        self.alice.profile.refresh_from_db()
+        self.assertEqual(self.alice.profile.storage_used_bytes, 0)
 
     def test_type_template_is_prefilled(self):
         self.client.force_login(self.alice)

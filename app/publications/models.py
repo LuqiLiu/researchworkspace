@@ -102,13 +102,5 @@ class PublishedAttachment(models.Model):
             )
         ]
 
-    def delete(self, *args, **kwargs):
-        storage = self.file.storage
-        name = self.file.name
-        result = super().delete(*args, **kwargs)
-        if name and storage.exists(name):
-            storage.delete(name)
-        return result
-
     def __str__(self):
         return self.original_name

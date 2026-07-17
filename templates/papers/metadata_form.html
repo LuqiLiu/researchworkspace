@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}校正文献题录 · Research Workspace Lite{% endblock %}
+{% block content %}
+<main class="content-narrow">
+    <div class="page-heading">
+        <p class="kicker">Metadata review</p>
+        <h1>校正文献题录</h1>
+        <p>外部服务和 PDF 提取结果仅作为建议；保存后以你的手动版本为准。</p>
+    </div>
+    <form method="post" class="panel form-panel">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="form-actions">
+            <button type="submit">保存题录</button>
+            <a class="button secondary" href="{% url 'research_objects:detail' object.pk %}">取消</a>
+        </div>
+    </form>
+</main>
+{% endblock %}

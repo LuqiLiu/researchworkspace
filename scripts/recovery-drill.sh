@@ -31,13 +31,14 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 mkdir -p "$(dirname "${RECOVERY_REPORT}")"
-docker image inspect "${WEB_IMAGE:-research_workspace-web:latest}" >/dev/null
+compose config --quiet
 
 COMPOSE_PROJECT_NAME="${DRILL_PROJECT}" \
 COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE}" \
 COMPOSE_FILE="${COMPOSE_FILE}" \
 RESTORE_START_CADDY=false \
-    ./scripts/restore.sh "${BACKUP_DIRECTORY}" --yes
+ALLOW_CROSS_PROJECT_RESTORE=true \
+    ./scripts/restore.sh "${BACKUP_DIRECTORY}" --yes "${DRILL_PROJECT}"
 
 MIGRATION_COUNT="$(compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT count(*) FROM django_migrations"' | tr -d '\r')"
 USER_COUNT="$(compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT count(*) FROM auth_user"' | tr -d '\r')"

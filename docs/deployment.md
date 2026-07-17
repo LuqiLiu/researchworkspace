@@ -38,6 +38,8 @@ chmod 600 .env
 
 Set a real domain, unique Django and PostgreSQL secrets, trusted origins, and
 initial administrator credentials. Set `DJANGO_SECURE_SSL_REDIRECT=true`.
+Set `WEB_IMAGE` to a unique release/commit tag (or a registry digest); never use
+`latest`. Keep the previous value for rollback.
 Increase HSTS gradually after HTTPS is confirmed; enable subdomains or preload
 only when every relevant hostname is permanently HTTPS-only.
 

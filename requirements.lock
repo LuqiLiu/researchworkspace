@@ -1,0 +1,13 @@
+asgiref==3.12.1
+bleach==6.4.0
+Django==5.2.16
+gunicorn==23.0.0
+Markdown==3.10.2
+packaging==26.2
+psycopg==3.2.13
+psycopg-binary==3.2.13
+pypdf==6.14.2
+setuptools==80.9.0
+sqlparse==0.5.5
+typing_extensions==4.16.0
+webencodings==0.5.1

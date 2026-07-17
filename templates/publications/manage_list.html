@@ -5,6 +5,7 @@
     <div class="page-heading-row">
         <div><p class="kicker">Public scholarship</p><h1>我的公开主页</h1><p>公开内容由独立快照组成，私人原稿的后续修改不会自动同步。</p></div>
         <div class="button-group">
+            <a class="button secondary" href="{% url 'publications:profile_export' %}">导出公开内容</a>
             <a class="button secondary" href="{% url 'accounts:profile' %}">主页资料</a>
             {% if user.profile.public_enabled and user.profile.public_slug %}<a class="button" href="{% url 'publications:public_profile' user.profile.public_slug %}" target="_blank" rel="noopener">访问公开主页</a>{% endif %}
         </div>

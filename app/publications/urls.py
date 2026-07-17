@@ -7,6 +7,7 @@ app_name = "publications"
 urlpatterns = [
     path("robots.txt", views.robots_txt, name="robots"),
     path("publications/", views.manage_list, name="manage_list"),
+    path("publications/export/", views.public_profile_export, name="profile_export"),
     path("publications/from/<int:source_pk>/", views.edit_from_source, name="edit_from_source"),
     path("publications/<int:pk>/preview/", views.preview, name="preview"),
     path("publications/<int:pk>/preview-cover/", views.preview_cover, name="preview_cover"),
