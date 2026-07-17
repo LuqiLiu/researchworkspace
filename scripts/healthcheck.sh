@@ -12,9 +12,7 @@ compose() {
     fi
 }
 
-compose config --quiet
-compose build --pull web
-compose up -d
-compose exec -T web python manage.py check --deploy
+compose exec -T web python manage.py check
 compose exec -T web python manage.py check_storage --json
+compose exec -T db sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 compose ps

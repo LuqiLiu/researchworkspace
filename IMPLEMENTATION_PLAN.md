@@ -1,6 +1,6 @@
 # Delivery plan
 
-Stages 0–4 are complete. The application now provides a private research
+Stages 0–5 are complete. The application now provides a private research
 workspace, selective collaboration, a paper-centred research workflow, and
 opt-in public academic profiles while preserving the same lightweight
 deployment architecture.
@@ -63,8 +63,18 @@ deployment architecture.
 - Publish-time checks for common secret, credential, and server-path patterns.
 - Basic canonical, Open Graph, robots, and search-indexing controls.
 
-## Next candidate scope: Stage 5
+## Stage 5 delivered
 
-- Complete a clean-environment backup and restore rehearsal.
-- Add resource-limit and restart-recovery verification for the three services.
-- Finish the administrator operations guide and disk-capacity checks.
+- CPU, memory, PID, graceful-shutdown, and log-rotation guardrails for all three
+  long-running services.
+- Gunicorn request recycling and a machine-readable media-volume capacity check.
+- Atomic backups with gzip/SHA-256 verification and daily/weekly retention.
+- Restore with Web/Caddy stopped, post-restore migration/check, and audit events.
+- A disposable Compose recovery drill that uses isolated database/media volumes.
+- Expanded deployment, firewall, restart, backup, incident, and administrator
+  documentation.
+
+## Next candidate scope
+
+- Operate the V1 with real users and collect maintenance feedback.
+- Add capabilities only when observed use demonstrates a concrete need.

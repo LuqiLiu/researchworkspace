@@ -13,6 +13,8 @@ class SecurityAuditLog(models.Model):
         COMMENT_DELETED = "COMMENT_DELETED", "Comment deleted"
         PUBLICATION_PUBLISHED = "PUBLICATION_PUBLISHED", "Publication published"
         PUBLICATION_WITHDRAWN = "PUBLICATION_WITHDRAWN", "Publication withdrawn"
+        BACKUP_CREATED = "BACKUP_CREATED", "Backup created"
+        RESTORE_COMPLETED = "RESTORE_COMPLETED", "Restore completed"
 
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL,

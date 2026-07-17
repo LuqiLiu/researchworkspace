@@ -1,8 +1,8 @@
 # Research Workspace Lite
 
 Private, lightweight research workspace for collecting papers, developing ideas,
-recording experiments, and connecting research evidence. Stages 0–3 are
-implemented on one small deployment stack.
+recording experiments, connecting research evidence, and publishing selected
+work. Stages 0–5 are implemented on one small deployment stack.
 
 ## Stack
 
@@ -34,6 +34,7 @@ Useful commands:
 ```bash
 docker compose exec web python manage.py migrate
 docker compose exec web python manage.py init_admin
+docker compose exec web python manage.py seed_demo --password 'local-demo-password'
 docker compose exec web python manage.py test
 docker compose down
 ```
@@ -140,11 +141,22 @@ docker compose --env-file .env -f compose.yml config
 
 - [docs/backup-restore.md](docs/backup-restore.md)
 - [docs/upgrade.md](docs/upgrade.md)
+- [docs/admin-operations.md](docs/admin-operations.md)
+- [docs/recovery-verification.md](docs/recovery-verification.md)
 - `scripts/backup.sh`
 - `scripts/restore.sh`
 - `scripts/deploy.sh`
 
 Backup archives must be stored outside publicly served directories and copied to a separate machine or storage system.
+
+## Stage 5 operations
+
+- Per-service CPU, memory, process, and graceful-shutdown guardrails
+- Docker log rotation and Gunicorn worker recycling
+- Machine-readable disk-capacity checks
+- Atomic, checksummed daily/weekly backups with retention
+- Restore with traffic stopped and an isolated recovery-drill workflow
+- Deployment, firewall, restart recovery, incident, and administrator guidance
 
 ## Repository layout
 

@@ -1,9 +1,20 @@
 name: ${COMPOSE_PROJECT_NAME:-research_workspace}
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: ${DOCKER_LOG_MAX_SIZE:-10m}
+    max-file: "${DOCKER_LOG_MAX_FILE:-3}"
+
 services:
   db:
     image: postgres:17-alpine
     restart: unless-stopped
+    mem_limit: ${DB_MEMORY_LIMIT:-512m}
+    cpus: ${DB_CPU_LIMIT:-0.65}
+    pids_limit: 120
+    stop_grace_period: 60s
+    logging: *default-logging
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
@@ -32,9 +43,15 @@ services:
       - backend
 
   web:
+    image: ${WEB_IMAGE:-research_workspace-web:latest}
     build:
       context: .
     restart: unless-stopped
+    mem_limit: ${WEB_MEMORY_LIMIT:-768m}
+    cpus: ${WEB_CPU_LIMIT:-1.0}
+    pids_limit: 160
+    stop_grace_period: 45s
+    logging: *default-logging
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.production
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env}
@@ -42,6 +59,11 @@ services:
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-}
       DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
       DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-true}
+      DJANGO_SECURE_HSTS_SECONDS: ${DJANGO_SECURE_HSTS_SECONDS:-3600}
+      DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: ${DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS:-false}
+      DJANGO_SECURE_HSTS_PRELOAD: ${DJANGO_SECURE_HSTS_PRELOAD:-false}
+      CROSSREF_MAILTO: ${CROSSREF_MAILTO:-}
+      CROSSREF_TIMEOUT_SECONDS: ${CROSSREF_TIMEOUT_SECONDS:-4}
       POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
@@ -50,6 +72,9 @@ services:
       POSTGRES_CONN_MAX_AGE: ${POSTGRES_CONN_MAX_AGE:-60}
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-30}
+      GUNICORN_MAX_REQUESTS: ${GUNICORN_MAX_REQUESTS:-1000}
+      GUNICORN_MAX_REQUESTS_JITTER: ${GUNICORN_MAX_REQUESTS_JITTER:-100}
+      MINIMUM_FREE_DISK_MB: ${MINIMUM_FREE_DISK_MB:-1024}
       MIGRATE_ON_STARTUP: ${MIGRATE_ON_STARTUP:-true}
       DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-admin}
       DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-}
@@ -78,6 +103,11 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    mem_limit: ${CADDY_MEMORY_LIMIT:-128m}
+    cpus: ${CADDY_CPU_LIMIT:-0.35}
+    pids_limit: 80
+    stop_grace_period: 30s
+    logging: *default-logging
     environment:
       DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
       CADDY_EMAIL: ${CADDY_EMAIL:-off}
@@ -105,4 +135,3 @@ volumes:
 
 networks:
   backend:
-
