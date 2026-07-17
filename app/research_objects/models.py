@@ -71,6 +71,7 @@ class ResearchObject(models.Model):
     content_markdown = models.TextField()
     content_plain_text = models.TextField(blank=True, editable=False)
     metadata_json = models.JSONField(default=dict, blank=True)
+    search_text = models.TextField(blank=True, editable=False)
     project = models.ForeignKey(
         "projects.Project",
         on_delete=models.SET_NULL,
@@ -108,6 +109,7 @@ class ResearchObject(models.Model):
 
     def save(self, *args, **kwargs):
         from .services import markdown_to_plain_text
+        from .services import compose_search_text
 
         if not self.project_id:
             self.is_shared_with_project = False
@@ -117,6 +119,7 @@ class ResearchObject(models.Model):
         elif self.project_id:
             self.status = self.Status.SHARED
         self.content_plain_text = markdown_to_plain_text(self.content_markdown)
+        self.search_text = compose_search_text(self)
         super().save(*args, **kwargs)
 
     def soft_delete(self):
@@ -152,3 +155,55 @@ class Attachment(models.Model):
 
     def __str__(self):
         return self.original_name
+
+
+class ObjectRelation(models.Model):
+    class RelationType(models.TextChoices):
+        RELATED = "RELATED", "关联"
+        DERIVED_FROM = "DERIVED_FROM", "来源于"
+        CITES = "CITES", "引用"
+        SUPPORTS = "SUPPORTS", "支持"
+        CONTRADICTS = "CONTRADICTS", "反驳"
+        VALIDATES = "VALIDATES", "验证"
+        USES = "USES", "使用"
+        PRODUCES = "PRODUCES", "产生"
+        BELONGS_TO = "BELONGS_TO", "属于"
+        FOLLOW_UP = "FOLLOW_UP", "后续工作"
+
+    source_object = models.ForeignKey(
+        ResearchObject,
+        on_delete=models.CASCADE,
+        related_name="outgoing_relations",
+    )
+    target_object = models.ForeignKey(
+        ResearchObject,
+        on_delete=models.CASCADE,
+        related_name="incoming_relations",
+    )
+    relation_type = models.CharField(
+        max_length=30,
+        choices=RelationType.choices,
+        default=RelationType.RELATED,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="created_object_relations",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("source_object", "target_object", "relation_type"),
+                name="unique_typed_object_relation",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(source_object=models.F("target_object")),
+                name="relation_objects_must_differ",
+            ),
+        ]
+        ordering = ("relation_type", "target_object__title")
+
+    def __str__(self):
+        return f"{self.source_object} {self.relation_type} {self.target_object}"

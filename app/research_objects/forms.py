@@ -5,7 +5,7 @@ from django.db import transaction
 
 from app.projects.models import Project
 
-from .models import Attachment, ResearchObject, Tag
+from .models import Attachment, ObjectRelation, ResearchObject, Tag
 
 
 class ResearchObjectForm(forms.ModelForm):
@@ -129,3 +129,31 @@ class AttachmentForm(forms.ModelForm):
         if (upload.content_type or "").lower() in self.blocked_mime_types:
             raise forms.ValidationError("附件 MIME 类型不安全。")
         return upload
+
+
+class ObjectRelationForm(forms.ModelForm):
+    class Meta:
+        model = ObjectRelation
+        fields = ("target_object", "relation_type")
+        labels = {
+            "target_object": "关联目标",
+            "relation_type": "关系类型",
+        }
+
+    def __init__(self, *args, user=None, source_object=None, **kwargs):
+        self.user = user
+        self.source_object = source_object
+        super().__init__(*args, **kwargs)
+        from .services import visible_objects
+
+        self.fields["target_object"].queryset = visible_objects(user).exclude(
+            pk=source_object.pk
+        )
+
+    def save(self, commit=True):
+        relation = super().save(commit=False)
+        relation.source_object = self.source_object
+        relation.created_by = self.user
+        if commit:
+            relation.save()
+        return relation

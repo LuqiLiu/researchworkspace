@@ -33,6 +33,24 @@ def markdown_to_plain_text(value):
     return re.sub(r"\s+", " ", plain).strip()
 
 
+def compose_search_text(obj):
+    metadata = obj.metadata_json or {}
+    authors = metadata.get("authors", [])
+    if isinstance(authors, list):
+        authors = " ".join(str(author) for author in authors)
+    parts = [
+        obj.title,
+        obj.content_plain_text,
+        authors,
+        metadata.get("doi", ""),
+        metadata.get("journal", ""),
+        metadata.get("abstract", ""),
+        metadata.get("bibtex", ""),
+        metadata.get("external_url", ""),
+    ]
+    return re.sub(r"\s+", " ", " ".join(str(part or "") for part in parts)).strip()
+
+
 def visible_objects(user):
     from app.sharing.services import visible_objects as shared_visible_objects
 
@@ -46,6 +64,8 @@ def search_objects(user, query):
         return queryset.none()
     return queryset.filter(
         Q(title__icontains=query)
-        | Q(content_plain_text__icontains=query)
+        | Q(search_text__icontains=query)
         | Q(tags__name__icontains=query)
+        | Q(project__name__icontains=query)
+        | Q(comments__content__icontains=query, comments__deleted_at__isnull=True)
     ).distinct()

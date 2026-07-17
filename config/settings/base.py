@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "app.comments.apps.CommentsConfig",
     "app.core.apps.CoreConfig",
     "app.projects.apps.ProjectsConfig",
+    "app.papers.apps.PapersConfig",
     "app.research_objects.apps.ResearchObjectsConfig",
     "app.sharing.apps.SharingConfig",
 ]
@@ -122,6 +123,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "research_objects:list"
 LOGOUT_REDIRECT_URL = "accounts:login"
+CROSSREF_MAILTO = os.environ.get("CROSSREF_MAILTO", "")
+CROSSREF_TIMEOUT_SECONDS = float(
+    os.environ.get("CROSSREF_TIMEOUT_SECONDS", "4")
+)
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_HTTPONLY = True

@@ -17,8 +17,8 @@ from app.sharing.services import (
     can_manage,
 )
 
-from .forms import AttachmentForm, ResearchObjectForm
-from .models import Attachment, ResearchObject
+from .forms import AttachmentForm, ObjectRelationForm, ResearchObjectForm
+from .models import Attachment, ObjectRelation, ResearchObject
 from .services import render_markdown, search_objects, visible_objects
 
 
@@ -66,7 +66,17 @@ def object_list(request):
 @login_required
 @require_http_methods(["GET", "POST"])
 def object_create(request):
-    initial = {"object_type": request.GET.get("type", ResearchObject.ObjectType.NOTE)}
+    object_type = request.GET.get("type", ResearchObject.ObjectType.NOTE)
+    templates = {
+        ResearchObject.ObjectType.IDEA: "## 想法描述\n\n\n## 相关依据\n\n\n## 下一步验证\n\n",
+        ResearchObject.ObjectType.EXPERIMENT: "## 实验目的\n\n\n## 代码与配置\n\n\n## 启动命令\n\n```bash\n\n```\n\n## 结果位置\n\n\n## 关键结果\n\n\n## 结论与下一步\n\n",
+        ResearchObject.ObjectType.ISSUE: "## 问题现象\n\n\n## 已尝试方法\n\n\n## 最终解决\n\n\n## 相关命令或链接\n\n",
+        ResearchObject.ObjectType.PAPER: "## 一句话笔记\n\n\n## 关键内容\n\n\n## 与当前研究的关系\n\n",
+    }
+    initial = {
+        "object_type": object_type,
+        "content_markdown": templates.get(object_type, ""),
+    }
     form = ResearchObjectForm(
         request.POST or None,
         owner=request.user,
@@ -94,6 +104,13 @@ def object_detail(request, pk):
         for attachment in obj.attachments.all()
         if can_access_attachment(request.user, attachment)
     ]
+    visible_ids = visible_objects(request.user).values_list("pk", flat=True)
+    outgoing_relations = obj.outgoing_relations.filter(
+        target_object_id__in=visible_ids
+    ).select_related("target_object")
+    incoming_relations = obj.incoming_relations.filter(
+        source_object_id__in=visible_ids
+    ).select_related("source_object")
     return render(
         request,
         "research_objects/detail.html",
@@ -112,8 +129,47 @@ def object_detail(request, pk):
                 if can_manage(request.user, obj)
                 else None
             ),
+            "relation_form": (
+                ObjectRelationForm(user=request.user, source_object=obj)
+                if can_manage(request.user, obj)
+                else None
+            ),
+            "outgoing_relations": outgoing_relations,
+            "incoming_relations": incoming_relations,
         },
     )
+
+
+@login_required
+@require_POST
+def relation_create(request, pk):
+    obj = _owned_object_or_404(request.user, pk)
+    form = ObjectRelationForm(
+        request.POST,
+        user=request.user,
+        source_object=obj,
+    )
+    if form.is_valid():
+        form.save()
+        messages.success(request, "关联关系已建立。")
+    else:
+        messages.error(request, form.errors.as_text())
+    return redirect("research_objects:detail", pk=obj.pk)
+
+
+@login_required
+@require_POST
+def relation_delete(request, pk):
+    relation = get_object_or_404(
+        ObjectRelation.objects.select_related("source_object"),
+        pk=pk,
+        source_object__owner=request.user,
+        source_object__deleted_at__isnull=True,
+    )
+    source_id = relation.source_object_id
+    relation.delete()
+    messages.success(request, "关联关系已移除。")
+    return redirect("research_objects:detail", pk=source_id)
 
 
 @login_required

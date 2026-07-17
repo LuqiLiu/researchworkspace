@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}导入文献 · Research Workspace Lite{% endblock %}
+{% block content %}
+<main class="content-narrow">
+    <div class="page-heading">
+        <p class="kicker">Literature intake</p>
+        <h1>快速收录文献</h1>
+        <p>任选 DOI、论文网页或 PDF。外部服务失败不会阻止保存。</p>
+    </div>
+    <form method="post" enctype="multipart/form-data" class="panel form-panel">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="form-section">
+            <span class="section-index">01</span>
+            <div>
+                <h2>文献来源</h2>
+                <p class="muted">系统优先读取 PDF 自带信息，再查询 DOI 题录。</p>
+            </div>
+        </div>
+        {{ form.as_p }}
+        <div class="form-actions">
+            <button type="submit">导入并保存</button>
+            <a class="button secondary" href="{% url 'research_objects:list' %}">取消</a>
+        </div>
+    </form>
+</main>
+{% endblock %}

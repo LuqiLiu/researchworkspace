@@ -5,7 +5,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from app.research_objects.models import Attachment, ResearchObject
+from app.research_objects.models import Attachment, ObjectRelation, ResearchObject
 from app.research_objects.forms import AttachmentForm
 from app.research_objects.services import render_markdown
 
@@ -138,3 +138,30 @@ class PrivateWorkspaceTests(TestCase):
             files={"file": SimpleUploadedFile("payload.exe", b"MZ")}
         )
         self.assertFalse(form.is_valid())
+
+    def test_type_template_is_prefilled(self):
+        self.client.force_login(self.alice)
+        response = self.client.get(
+            reverse("research_objects:create"),
+            {"type": ResearchObject.ObjectType.EXPERIMENT},
+        )
+        self.assertContains(response, "实验目的")
+        self.assertContains(response, "启动命令")
+
+    def test_relation_does_not_leak_invisible_target(self):
+        hidden = ResearchObject.objects.create(
+            owner=self.bob,
+            title="Bob hidden target",
+            content_markdown="secret",
+        )
+        ObjectRelation.objects.create(
+            source_object=self.obj,
+            target_object=hidden,
+            relation_type=ObjectRelation.RelationType.RELATED,
+            created_by=self.alice,
+        )
+        self.client.force_login(self.alice)
+        response = self.client.get(
+            reverse("research_objects:detail", args=[self.obj.pk])
+        )
+        self.assertNotContains(response, "Bob hidden target")

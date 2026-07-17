@@ -81,6 +81,32 @@
             {% endif %}
         </aside>
     </div>
+    {% if object.object_type == "PAPER" and object.metadata_json %}
+        <section class="card paper-metadata">
+            <h2>文献题录</h2>
+            {% if object.metadata_json.authors %}<p><strong>作者</strong> {{ object.metadata_json.authors|join:", " }}</p>{% endif %}
+            {% if object.metadata_json.journal %}<p><strong>期刊/会议</strong> {{ object.metadata_json.journal }}</p>{% endif %}
+            {% if object.metadata_json.year %}<p><strong>年份</strong> {{ object.metadata_json.year }}</p>{% endif %}
+            {% if object.metadata_json.doi %}<p><strong>DOI</strong> {{ object.metadata_json.doi }}</p>{% endif %}
+            {% if object.metadata_json.abstract %}<p><strong>摘要</strong> {{ object.metadata_json.abstract }}</p>{% endif %}
+            {% if object.metadata_json.bibtex %}<a class="button secondary" href="{% url 'papers:bibtex' object.pk %}">导出 BibTeX</a>{% endif %}
+        </section>
+    {% endif %}
+    <section class="card relations-panel">
+        <h2>关联内容</h2>
+        {% for relation in outgoing_relations %}
+            <p><span class="meta">{{ relation.get_relation_type_display }}</span> <a href="{% url 'research_objects:detail' relation.target_object.pk %}">{{ relation.target_object.title }}</a>
+            {% if can_manage %}<form class="inline-form" method="post" action="{% url 'research_objects:relation_delete' relation.pk %}">{% csrf_token %}<button class="link-button danger-text" type="submit">移除</button></form>{% endif %}</p>
+        {% endfor %}
+        {% for relation in incoming_relations %}
+            <p><span class="meta">被关联</span> <a href="{% url 'research_objects:detail' relation.source_object.pk %}">{{ relation.source_object.title }}</a></p>
+        {% empty %}{% if not outgoing_relations %}<p class="meta">尚未建立关联。</p>{% endif %}{% endfor %}
+        {% if relation_form %}
+            <form method="post" action="{% url 'research_objects:relation_create' object.pk %}">
+                {% csrf_token %}{{ relation_form.as_p }}<button type="submit">建立关联</button>
+            </form>
+        {% endif %}
+    </section>
     <section class="card">
         <h2>讨论</h2>
         {% for comment in comments %}
