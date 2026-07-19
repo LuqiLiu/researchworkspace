@@ -194,6 +194,15 @@ class PrivateWorkspaceTests(TestCase):
         self.assertNotIn("<script", rendered)
         self.assertIn("safe", rendered)
 
+    def test_markdown_preserves_inline_and_display_math_for_mathjax(self):
+        rendered = render_markdown(
+            "状态空间 $\\mathcal{S}$ 与回报 $G_t$。\n\n"
+            "$$V^\\pi(s)=\\mathbb{E}_\\pi[G_t \\mid S_t=s]$$"
+        )
+        self.assertIn(r"$\mathcal{S}$", rendered)
+        self.assertIn(r"$G_t$", rendered)
+        self.assertIn(r"$$V^\pi(s)=\mathbb{E}_\pi[G_t \mid S_t=s]$$", rendered)
+
     def test_executable_attachment_is_rejected(self):
         form = AttachmentForm(
             files={"file": SimpleUploadedFile("payload.exe", b"MZ")}

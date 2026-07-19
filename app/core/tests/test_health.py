@@ -32,3 +32,5 @@ class HealthViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Research Workspace Lite")
         self.assertContains(response, "进入工作台")
+        self.assertContains(response, "/static/js/mathjax-config.js")
+        self.assertContains(response, "mathjax@3.2.2/es5/tex-mml-chtml.js")

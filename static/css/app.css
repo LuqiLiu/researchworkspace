@@ -150,6 +150,7 @@ h3 { color: var(--forest); }
 .markdown pre { overflow-x: auto; padding: 17px; border-radius: 8px; background: #132725; color: #e8f2ef; font: 13px/1.65 var(--mono); }
 .markdown code { font-family: var(--mono); }
 .markdown img { max-width: 100%; }
+.markdown mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; padding: 0.25rem 0; }
 .detail-sidebar { display: grid; gap: 12px; }
 .detail-sidebar .card { margin: 0; padding: 17px; }
 .detail-sidebar h2 { margin: 0 0 12px; font: 700 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; }
