@@ -9,8 +9,11 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from app.research_objects.models import Attachment, ObjectRelation, ResearchObject
-from app.research_objects.forms import AttachmentForm
+from app.research_objects.forms import AttachmentForm, ImageAttachmentForm
 from app.research_objects.services import render_markdown
+
+
+PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"research-workspace-image"
 
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
@@ -167,6 +170,34 @@ class PrivateWorkspaceTests(TestCase):
             self.assertTrue(any(name.endswith("result.txt") for name in names))
             self.assertNotIn(b"must not export", payload)
 
+    def test_workspace_export_rewrites_private_image_url_to_archive_path(self):
+        image = Attachment.objects.create(
+            owner=self.alice,
+            research_object=self.obj,
+            file=SimpleUploadedFile("curve.png", PNG_BYTES, content_type="image/png"),
+            original_name="curve.png",
+            mime_type="image/png",
+            size=len(PNG_BYTES),
+            sha256="2" * 64,
+        )
+        inline_url = reverse(
+            "research_objects:attachment_inline",
+            args=[image.pk],
+        )
+        self.obj.content_markdown = f"![reward curve]({inline_url})"
+        self.obj.save()
+        self.client.force_login(self.alice)
+
+        response = self.client.get(reverse("research_objects:workspace_export"))
+        payload = b"".join(response.streaming_content)
+        with zipfile.ZipFile(BytesIO(payload)) as archive:
+            manifest = json.loads(archive.read("manifest.json"))
+            markdown_path = manifest["objects"][0]["markdown_path"]
+            markdown = archive.read(markdown_path).decode("utf-8")
+            exported_path = manifest["objects"][0]["attachments"][0]["path"]
+            self.assertIn(f"![reward curve](../{exported_path})", markdown)
+            self.assertNotIn(inline_url, markdown)
+
     def test_attachment_download_is_owner_only(self):
         attachment = Attachment.objects.create(
             owner=self.alice,
@@ -202,6 +233,39 @@ class PrivateWorkspaceTests(TestCase):
         self.assertIn(r"$\mathcal{S}$", rendered)
         self.assertIn(r"$G_t$", rendered)
         self.assertIn(r"$$V^\pi(s)=\mathbb{E}_\pi[G_t \mid S_t=s]$$", rendered)
+
+    def test_markdown_allows_only_protected_inline_images(self):
+        rendered = render_markdown(
+            "![curve](/workspace/attachments/12/inline/)\n\n"
+            "![tracker](https://tracker.example/pixel.png)"
+        )
+        self.assertIn(
+            '<img alt="curve" src="/workspace/attachments/12/inline/">',
+            rendered,
+        )
+        self.assertNotIn("tracker.example", rendered)
+
+    def test_image_form_validates_file_signature(self):
+        valid = ImageAttachmentForm(
+            files={
+                "file": SimpleUploadedFile(
+                    "curve.png",
+                    PNG_BYTES,
+                    content_type="image/png",
+                )
+            }
+        )
+        disguised_html = ImageAttachmentForm(
+            files={
+                "file": SimpleUploadedFile(
+                    "curve.png",
+                    b"<html><script>alert(1)</script></html>",
+                    content_type="image/png",
+                )
+            }
+        )
+        self.assertTrue(valid.is_valid())
+        self.assertFalse(disguised_html.is_valid())
 
     def test_executable_attachment_is_rejected(self):
         form = AttachmentForm(
@@ -242,6 +306,87 @@ class PrivateWorkspaceTests(TestCase):
         attachment.delete()
         self.alice.profile.refresh_from_db()
         self.assertEqual(self.alice.profile.storage_used_bytes, 0)
+
+    def test_image_upload_returns_markdown_and_inline_view_is_private(self):
+        self.client.force_login(self.alice)
+        response = self.client.post(
+            reverse("research_objects:image_upload", args=[self.obj.pk]),
+            {
+                "file": SimpleUploadedFile(
+                    "reward-curve.png",
+                    PNG_BYTES,
+                    content_type="image/png",
+                )
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        attachment = self.obj.attachments.get()
+        self.assertEqual(
+            payload["markdown"],
+            f"![reward-curve](/workspace/attachments/{attachment.pk}/inline/)",
+        )
+
+        inline = self.client.get(payload["inline_url"])
+        self.assertEqual(inline.status_code, 200)
+        self.assertEqual(inline["Content-Type"], "image/png")
+        self.assertEqual(inline["Cache-Control"], "private, no-store")
+        self.assertEqual(b"".join(inline.streaming_content), PNG_BYTES)
+
+        self.client.force_login(self.bob)
+        denied = self.client.get(payload["inline_url"])
+        self.assertEqual(denied.status_code, 404)
+
+    def test_non_image_attachment_cannot_be_rendered_inline(self):
+        attachment = Attachment.objects.create(
+            owner=self.alice,
+            research_object=self.obj,
+            file=SimpleUploadedFile("result.txt", b"private"),
+            original_name="result.txt",
+            mime_type="text/plain",
+            size=7,
+            sha256="3" * 64,
+        )
+        self.client.force_login(self.alice)
+        response = self.client.get(
+            reverse("research_objects:attachment_inline", args=[attachment.pk])
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_owner_can_delete_attachment_through_post_only_endpoint(self):
+        attachment = Attachment.objects.create(
+            owner=self.alice,
+            research_object=self.obj,
+            file=SimpleUploadedFile("curve.png", PNG_BYTES),
+            original_name="curve.png",
+            mime_type="image/png",
+            size=len(PNG_BYTES),
+            sha256="4" * 64,
+        )
+        self.client.force_login(self.alice)
+        self.assertEqual(
+            self.client.get(
+                reverse("research_objects:attachment_delete", args=[attachment.pk])
+            ).status_code,
+            405,
+        )
+        response = self.client.post(
+            reverse("research_objects:attachment_delete", args=[attachment.pk])
+        )
+        self.assertRedirects(
+            response,
+            reverse("research_objects:detail", args=[self.obj.pk]),
+        )
+        self.assertFalse(Attachment.objects.filter(pk=attachment.pk).exists())
+
+    def test_edit_page_exposes_image_uploader_to_owner(self):
+        self.client.force_login(self.alice)
+        response = self.client.get(
+            reverse("research_objects:edit", args=[self.obj.pk])
+        )
+        self.assertContains(response, "上传并插入正文")
+        self.assertContains(response, "research-image-upload.js")
 
     def test_type_template_is_prefilled(self):
         self.client.force_login(self.alice)

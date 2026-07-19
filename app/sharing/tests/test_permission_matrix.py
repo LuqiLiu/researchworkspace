@@ -381,3 +381,71 @@ class PermissionMatrixTests(TestCase):
             ).status_code,
             200,
         )
+
+    def test_owner_can_review_every_outgoing_recipient(self):
+        response = self._get_as(self.owner, reverse("sharing:sent_shares"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Shared result")
+        self.assertContains(response, "Project result")
+        self.assertContains(response, "viewer")
+        self.assertContains(response, "commenter")
+        self.assertContains(response, "editor")
+        self.assertContains(response, "member")
+        self.assertContains(response, "project-editor")
+        self.assertContains(response, "直接分享")
+        self.assertContains(response, "项目：Collaboration")
+
+    def test_outgoing_roster_merges_access_routes_and_effective_permission(self):
+        ObjectShare.objects.create(
+            research_object=self.project_obj,
+            user=self.member,
+            permission=ObjectShare.Permission.EDITOR,
+            include_attachments=True,
+            created_by=self.owner,
+        )
+
+        response = self._get_as(self.owner, reverse("sharing:sent_shares"))
+        project_object = next(
+            obj
+            for obj in response.context["objects"]
+            if obj.pk == self.project_obj.pk
+        )
+        member_rows = [
+            recipient
+            for recipient in project_object.access_recipients
+            if recipient["user"] == self.member
+        ]
+
+        self.assertEqual(len(member_rows), 1)
+        self.assertEqual(member_rows[0]["permission_label"], "查看、评论和编辑")
+        self.assertTrue(member_rows[0]["include_attachments"])
+        self.assertEqual(
+            member_rows[0]["sources"],
+            ["直接分享", "项目：Collaboration"],
+        )
+
+    def test_owner_detail_shows_roster_but_recipient_detail_does_not(self):
+        url = reverse("research_objects:detail", args=[self.obj.pk])
+        owner_response = self._get_as(self.owner, url)
+        viewer_response = self._get_as(self.viewer, url)
+
+        self.assertContains(owner_response, "实际访问成员")
+        self.assertContains(owner_response, "commenter")
+        self.assertNotContains(viewer_response, "实际访问成员")
+        self.assertNotContains(viewer_response, "commenter")
+
+    def test_outgoing_overview_does_not_expose_another_owners_shares(self):
+        stranger_object = ResearchObject.objects.create(
+            owner=self.stranger,
+            title="Another owner's private share",
+        )
+        ObjectShare.objects.create(
+            research_object=stranger_object,
+            user=self.viewer,
+            created_by=self.stranger,
+        )
+
+        response = self._get_as(self.owner, reverse("sharing:sent_shares"))
+
+        self.assertNotContains(response, "Another owner's private share")

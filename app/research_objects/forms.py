@@ -6,6 +6,7 @@ from django.db import transaction
 from app.projects.models import Project
 
 from .models import Attachment, ObjectRelation, ResearchObject, Tag
+from .services import detect_safe_image_content_type
 
 
 class ObjectEditConflict(Exception):
@@ -145,6 +146,27 @@ class AttachmentForm(forms.ModelForm):
             raise forms.ValidationError("不允许上传可执行脚本或程序文件。")
         if (upload.content_type or "").lower() in self.blocked_mime_types:
             raise forms.ValidationError("附件 MIME 类型不安全。")
+        return upload
+
+
+class ImageAttachmentForm(AttachmentForm):
+    class Meta(AttachmentForm.Meta):
+        labels = {"file": "实验图片"}
+        help_texts = {
+            "file": "支持 PNG、JPEG、GIF、WebP，单张不超过 50 MB。",
+        }
+        widgets = {
+            "file": forms.ClearableFileInput(
+                attrs={"accept": "image/png,image/jpeg,image/gif,image/webp"}
+            ),
+        }
+
+    def clean_file(self):
+        upload = super().clean_file()
+        if not detect_safe_image_content_type(upload):
+            raise forms.ValidationError(
+                "只允许上传有效的 PNG、JPEG、GIF 或 WebP 图片。"
+            )
         return upload
 
 

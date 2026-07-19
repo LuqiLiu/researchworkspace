@@ -8,7 +8,7 @@ from pathlib import Path
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.text import slugify
@@ -22,16 +22,23 @@ from app.sharing.services import (
     can_comment,
     can_edit,
     can_manage,
+    object_access_recipients,
 )
 
 from .forms import (
     AttachmentForm,
+    ImageAttachmentForm,
     ObjectEditConflict,
     ObjectRelationForm,
     ResearchObjectForm,
 )
 from .models import Attachment, ObjectRelation, ResearchObject
-from .services import render_markdown, search_objects, visible_objects
+from .services import (
+    attachment_image_content_type,
+    render_markdown,
+    search_objects,
+    visible_objects,
+)
 
 
 def _owned_object_or_404(user, pk):
@@ -43,6 +50,53 @@ def _owned_object_or_404(user, pk):
 
 def _visible_object_or_404(user, pk):
     return get_object_or_404(visible_objects(user), pk=pk)
+
+
+def _visible_attachments(user, obj):
+    return [
+        attachment
+        for attachment in obj.attachments.all()
+        if can_access_attachment(user, attachment)
+    ]
+
+
+def _split_image_attachments(attachments):
+    images = []
+    files = []
+    for attachment in attachments:
+        content_type = attachment_image_content_type(attachment)
+        if content_type:
+            attachment.display_content_type = content_type
+            images.append(attachment)
+        else:
+            files.append(attachment)
+    return images, files
+
+
+def _persist_attachment(form, obj, owner):
+    upload = form.cleaned_data["file"]
+    digest = hashlib.sha256()
+    for chunk in upload.chunks():
+        digest.update(chunk)
+    upload.seek(0)
+    attachment = form.save(commit=False)
+    attachment.owner = owner
+    attachment.research_object = obj
+    attachment.original_name = upload.name.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+    attachment.mime_type = upload.content_type or ""
+    attachment.size = upload.size
+    attachment.sha256 = digest.hexdigest()
+    with transaction.atomic():
+        reserve_storage(owner, upload.size)
+        attachment.save()
+    return attachment
+
+
+def _image_markdown(attachment):
+    alt_text = Path(attachment.original_name).stem
+    alt_text = alt_text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+    inline_url = reverse("research_objects:attachment_inline", args=[attachment.pk])
+    return f"![{alt_text}]({inline_url})"
 
 
 def _enable_autosave(form, obj):
@@ -111,11 +165,9 @@ def object_detail(request, pk):
     comments = obj.comments.filter(deleted_at__isnull=True).select_related(
         "author", "parent"
     )
-    attachments = [
-        attachment
-        for attachment in obj.attachments.all()
-        if can_access_attachment(request.user, attachment)
-    ]
+    image_attachments, attachments = _split_image_attachments(
+        _visible_attachments(request.user, obj)
+    )
     visible_ids = visible_objects(request.user).values_list("pk", flat=True)
     outgoing_relations = obj.outgoing_relations.filter(
         target_object_id__in=visible_ids
@@ -124,12 +176,14 @@ def object_detail(request, pk):
         source_object_id__in=visible_ids
     ).select_related("source_object")
     publication_snapshot = None
+    access_recipients = []
     if can_manage(request.user, obj):
         from app.publications.models import PublicationSnapshot
 
         publication_snapshot = PublicationSnapshot.objects.filter(
             source_object=obj
         ).first()
+        access_recipients = object_access_recipients(obj)
     return render(
         request,
         "research_objects/detail.html",
@@ -138,6 +192,7 @@ def object_detail(request, pk):
             "content_html": render_markdown(obj.content_markdown),
             "attachment_form": AttachmentForm(),
             "attachments": attachments,
+            "image_attachments": image_attachments,
             "comment_form": CommentForm(),
             "comments": comments,
             "can_comment": can_comment(request.user, obj),
@@ -156,6 +211,7 @@ def object_detail(request, pk):
             "outgoing_relations": outgoing_relations,
             "incoming_relations": incoming_relations,
             "publication_snapshot": publication_snapshot,
+            "access_recipients": access_recipients,
         },
     )
 
@@ -214,18 +270,36 @@ def object_edit(request, pk):
                 None,
                 "此内容已在其他页面更新。你的草稿仍保留在当前页面，请刷新后合并再保存。",
             )
+            image_attachments, _ = _split_image_attachments(
+                _visible_attachments(request.user, obj)
+            )
             return render(
                 request,
                 "research_objects/form.html",
-                {"form": form, "heading": "编辑内容", "object": obj},
+                {
+                    "form": form,
+                    "heading": "编辑内容",
+                    "object": obj,
+                    "can_manage": may_manage,
+                    "image_attachments": image_attachments,
+                },
                 status=409,
             )
         messages.success(request, "内容已保存。")
         return redirect("research_objects:detail", pk=obj.pk)
+    image_attachments, _ = _split_image_attachments(
+        _visible_attachments(request.user, obj)
+    )
     return render(
         request,
         "research_objects/form.html",
-        {"form": form, "heading": "编辑内容", "object": obj},
+        {
+            "form": form,
+            "heading": "编辑内容",
+            "object": obj,
+            "can_manage": may_manage,
+            "image_attachments": image_attachments,
+        },
     )
 
 
@@ -312,8 +386,8 @@ def workspace_export(request):
         for obj in objects:
             safe_title = slugify(obj.title, allow_unicode=True)[:80] or "research-object"
             markdown_path = f"objects/{obj.pk}-{safe_title}.md"
-            archive.writestr(markdown_path, obj.content_markdown.encode("utf-8"))
             attachment_records = []
+            exported_markdown = obj.content_markdown
             for attachment in obj.attachments.all():
                 original_name = Path(attachment.original_name).name
                 attachment_path = (
@@ -325,6 +399,14 @@ def workspace_export(request):
                         with archive.open(attachment_path, "w") as destination:
                             shutil.copyfileobj(source, destination, length=1024 * 1024)
                     exported = True
+                    inline_url = reverse(
+                        "research_objects:attachment_inline",
+                        args=[attachment.pk],
+                    )
+                    exported_markdown = exported_markdown.replace(
+                        inline_url,
+                        f"../{attachment_path}",
+                    )
                 attachment_records.append(
                     {
                         "id": attachment.pk,
@@ -334,6 +416,7 @@ def workspace_export(request):
                         "sha256": attachment.sha256,
                     }
                 )
+            archive.writestr(markdown_path, exported_markdown.encode("utf-8"))
             manifest["objects"].append(
                 {
                     "id": obj.pk,
@@ -379,28 +462,60 @@ def attachment_upload(request, pk):
     obj = _owned_object_or_404(request.user, pk)
     form = AttachmentForm(request.POST, request.FILES)
     if form.is_valid():
-        upload = request.FILES["file"]
-        digest = hashlib.sha256()
-        for chunk in upload.chunks():
-            digest.update(chunk)
-        upload.seek(0)
-        attachment = form.save(commit=False)
-        attachment.owner = request.user
-        attachment.research_object = obj
-        attachment.original_name = upload.name.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
-        attachment.mime_type = upload.content_type or ""
-        attachment.size = upload.size
-        attachment.sha256 = digest.hexdigest()
         try:
-            with transaction.atomic():
-                reserve_storage(request.user, upload.size)
-                attachment.save()
+            _persist_attachment(form, obj, request.user)
         except StorageQuotaExceeded as exc:
             messages.error(request, str(exc))
             return redirect("research_objects:detail", pk=obj.pk)
         messages.success(request, "附件已上传，仍保持私有。")
     else:
         messages.error(request, form.errors.as_text())
+    return redirect("research_objects:detail", pk=obj.pk)
+
+
+@login_required
+@require_POST
+def image_upload(request, pk):
+    obj = _owned_object_or_404(request.user, pk)
+    form = ImageAttachmentForm(request.POST, request.FILES)
+    is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
+    if not form.is_valid():
+        error = " ".join(
+            message
+            for errors in form.errors.values()
+            for message in errors
+        )
+        if is_ajax:
+            return JsonResponse({"error": error}, status=422)
+        messages.error(request, error)
+        return redirect("research_objects:detail", pk=obj.pk)
+    try:
+        attachment = _persist_attachment(form, obj, request.user)
+    except StorageQuotaExceeded as exc:
+        if is_ajax:
+            return JsonResponse({"error": str(exc)}, status=422)
+        messages.error(request, str(exc))
+        return redirect("research_objects:detail", pk=obj.pk)
+
+    inline_url = reverse(
+        "research_objects:attachment_inline",
+        args=[attachment.pk],
+    )
+    if is_ajax:
+        return JsonResponse(
+            {
+                "id": attachment.pk,
+                "name": attachment.original_name,
+                "inline_url": inline_url,
+                "download_url": reverse(
+                    "research_objects:attachment_download",
+                    args=[attachment.pk],
+                ),
+                "markdown": _image_markdown(attachment),
+            },
+            status=201,
+        )
+    messages.success(request, "实验图片已上传，可在编辑页插入正文。")
     return redirect("research_objects:detail", pk=obj.pk)
 
 
@@ -424,3 +539,50 @@ def attachment_download(request, pk):
         as_attachment=True,
         filename=attachment.original_name,
     )
+
+
+@login_required
+@require_GET
+def attachment_inline(request, pk):
+    attachment = get_object_or_404(
+        Attachment.objects.select_related(
+            "research_object",
+            "research_object__project",
+        ),
+        pk=pk,
+        research_object__deleted_at__isnull=True,
+    )
+    if not can_access_attachment(request.user, attachment):
+        raise Http404
+    if not attachment.file.storage.exists(attachment.file.name):
+        raise Http404
+    content_type = attachment_image_content_type(attachment)
+    if not content_type:
+        raise Http404
+    response = FileResponse(
+        attachment.file.open("rb"),
+        as_attachment=False,
+        filename=attachment.original_name,
+        content_type=content_type,
+    )
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@login_required
+@require_POST
+def attachment_delete(request, pk):
+    attachment = get_object_or_404(
+        Attachment.objects.select_related("research_object"),
+        pk=pk,
+        owner=request.user,
+        research_object__owner=request.user,
+        research_object__deleted_at__isnull=True,
+    )
+    obj = attachment.research_object
+    attachment.delete()
+    messages.success(request, "附件已删除。")
+    if request.POST.get("return_to") == "edit":
+        return redirect("research_objects:edit", pk=obj.pk)
+    return redirect("research_objects:detail", pk=obj.pk)

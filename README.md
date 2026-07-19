@@ -1,4 +1,4 @@
-# Research Workspace Lite V1
+# Research Workspace Lite V1.1
 
 Private, lightweight research workspace for collecting papers, developing ideas,
 recording experiments, connecting research evidence, and publishing selected
@@ -81,6 +81,8 @@ Docker uses the readiness endpoint for the `web` service health check.
   project sharing
 - Threaded comments for users with comment permission
 - Immediate access revocation for direct shares and project membership
+- An owner-only outgoing-share dashboard listing every effective recipient,
+  access source, permission level, and attachment scope
 - Security audit records for share, revocation, project-member, and comment
   moderation events
 
@@ -99,6 +101,11 @@ admin.
 - Typed links between papers, ideas, experiments, issues, and other objects
 - Expanded permission-aware search across metadata, tags, projects, and comments
 - Purpose-built templates for paper, idea, experiment, and issue records
+- Private experiment-image uploads with paste, drag-and-drop, gallery preview,
+  and one-click Markdown insertion
+- Permission-checked inline image responses that stop working immediately when
+  attachment access is revoked
+- Portable workspace exports that rewrite inline image links to archived files
 
 ## Interface
 

@@ -1,5 +1,7 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ heading }} · Research Workspace Lite{% endblock %}
+{% block extra_head %}{% if object %}<script src="{% static 'js/research-image-upload.js' %}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 <main class="content-narrow">
     <div class="page-heading"><p class="kicker">Research editor</p><h1>{{ heading }}</h1><p>以 Markdown 保存源文本；新内容默认仅你自己可见。</p></div>
@@ -10,5 +12,42 @@
         {% if object %}<p id="autosave-status" class="meta" aria-live="polite">等待编辑</p>{% endif %}
         <div class="form-actions"><button type="submit">保存记录</button>{% if object %}<a class="button secondary" href="{% url 'research_objects:detail' object.pk %}">取消</a>{% endif %}</div>
     </form>
+    {% if not object %}
+        <section class="card editor-media-hint">
+            <strong>需要记录实验图像？</strong>
+            <p class="muted">先保存记录，随后可在编辑页粘贴、拖拽或选择图片，并自动插入 Markdown 正文。</p>
+        </section>
+    {% endif %}
+    {% if object and can_manage or image_attachments %}
+        <section class="panel editor-media-panel" data-image-uploader>
+            <div class="form-section">
+                <span class="section-index">02</span>
+                <div><h2>实验图像</h2><p class="muted">上传后自动在光标处插入 Markdown；也可从已有图像中再次插入。</p></div>
+            </div>
+            {% if can_manage %}
+                <form class="image-upload-form" method="post" enctype="multipart/form-data" action="{% url 'research_objects:image_upload' object.pk %}">
+                    {% csrf_token %}
+                    <label class="image-drop-zone" for="editor-image-file">
+                        <strong>选择或拖入实验图片</strong>
+                        <span>也可以直接把剪贴板图片粘贴到正文编辑框</span>
+                        <input id="editor-image-file" type="file" name="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
+                    </label>
+                    <button type="submit">上传并插入正文</button>
+                </form>
+            {% endif %}
+            <p class="upload-status meta" aria-live="polite">支持 PNG、JPEG、GIF、WebP，单张不超过 50 MB。</p>
+            <div class="image-gallery editor-image-library">
+                {% for attachment in image_attachments %}
+                    <figure class="image-card">
+                        <img src="{% url 'research_objects:attachment_inline' attachment.pk %}" alt="{{ attachment.original_name }}" loading="lazy">
+                        <figcaption>
+                            <span title="{{ attachment.original_name }}">{{ attachment.original_name }}</span>
+                            <button type="button" class="link-button" data-insert-image data-image-name="{{ attachment.original_name }}" data-inline-url="{% url 'research_objects:attachment_inline' attachment.pk %}">插入正文</button>
+                        </figcaption>
+                    </figure>
+                {% empty %}<p class="meta gallery-empty">还没有实验图片。</p>{% endfor %}
+            </div>
+        </section>
+    {% endif %}
 </main>
 {% endblock %}

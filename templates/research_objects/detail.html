@@ -44,11 +44,53 @@
                 {% endif %}
                 <p class="meta">{% for tag in object.tags.all %}#{{ tag.name }} {% empty %}无标签{% endfor %}</p>
             </section>
+            <section class="card media-card">
+                <div class="card-heading-row">
+                    <h2>实验图像</h2>
+                    {% if image_attachments %}<span class="meta">{{ image_attachments|length }} 张</span>{% endif %}
+                </div>
+                <div class="image-gallery image-gallery-sidebar">
+                    {% for attachment in image_attachments %}
+                        <figure class="image-card">
+                            <a href="{% url 'research_objects:attachment_inline' attachment.pk %}" target="_blank" rel="noopener">
+                                <img src="{% url 'research_objects:attachment_inline' attachment.pk %}" alt="{{ attachment.original_name }}" loading="lazy">
+                            </a>
+                            <figcaption>
+                                <span title="{{ attachment.original_name }}">{{ attachment.original_name }}</span>
+                                <span class="image-actions">
+                                    <a href="{% url 'research_objects:attachment_download' attachment.pk %}">下载</a>
+                                    {% if can_manage %}
+                                        <form method="post" action="{% url 'research_objects:attachment_delete' attachment.pk %}">
+                                            {% csrf_token %}<button class="link-button danger-text" type="submit">删除</button>
+                                        </form>
+                                    {% endif %}
+                                </span>
+                            </figcaption>
+                        </figure>
+                    {% empty %}<p class="meta gallery-empty">暂无实验图像</p>{% endfor %}
+                </div>
+                {% if can_manage %}
+                    <form class="compact-upload-form" method="post" enctype="multipart/form-data" action="{% url 'research_objects:image_upload' object.pk %}">
+                        {% csrf_token %}
+                        <label for="detail-image-file">上传图片</label>
+                        <input id="detail-image-file" type="file" name="file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+                        <button type="submit">上传图片</button>
+                        <p class="meta">支持 PNG、JPEG、GIF、WebP；上传后可在编辑页插入正文。</p>
+                    </form>
+                {% endif %}
+            </section>
             <section class="card">
-                <h2>附件</h2>
+                <h2>其他附件</h2>
                 <ul class="attachment-list">
                     {% for attachment in attachments %}
-                        <li><a href="{% url 'research_objects:attachment_download' attachment.pk %}">{{ attachment.original_name }}</a></li>
+                        <li>
+                            <a href="{% url 'research_objects:attachment_download' attachment.pk %}">{{ attachment.original_name }}</a>
+                            {% if can_manage %}
+                                <form class="inline-form" method="post" action="{% url 'research_objects:attachment_delete' attachment.pk %}">
+                                    {% csrf_token %}<button class="link-button danger-text" type="submit">删除</button>
+                                </form>
+                            {% endif %}
+                        </li>
                     {% empty %}<li class="meta">暂无附件</li>{% endfor %}
                 </ul>
                 {% if can_manage %}
@@ -59,7 +101,20 @@
             </section>
             {% if can_manage %}
                 <section class="card">
-                    <h2>分享给成员</h2>
+                    <div class="card-heading-row">
+                        <h2>实际访问成员</h2>
+                        <a class="subtle-link" href="{% url 'sharing:sent_shares' %}">查看全部</a>
+                    </div>
+                    <div class="detail-recipient-list">
+                        {% for recipient in access_recipients %}
+                            <div class="detail-recipient">
+                                <span class="avatar recipient-avatar">{{ recipient.user.username|first|upper }}</span>
+                                <span><strong>{{ recipient.user.profile.display_name|default:recipient.user.get_username }}</strong><small>{{ recipient.permission_label }} · {{ recipient.sources|join:" + " }} · {% if recipient.include_attachments %}含附件{% else %}仅正文{% endif %}</small></span>
+                            </div>
+                        {% empty %}<p class="meta">当前仅你自己可以访问。</p>{% endfor %}
+                    </div>
+                    <hr class="card-divider">
+                    <h3>添加或调整直接分享</h3>
                     <form method="post" action="{% url 'sharing:create' object.pk %}">
                         {% csrf_token %}{{ share_form.as_p }}<button type="submit">添加分享</button>
                     </form>

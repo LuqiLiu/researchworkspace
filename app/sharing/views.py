@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -10,7 +11,12 @@ from app.research_objects.models import ResearchObject
 
 from .forms import ObjectShareForm, ObjectShareUpdateForm
 from .models import ObjectShare
-from .services import can_manage, sync_object_status, visible_objects
+from .services import (
+    can_manage,
+    object_access_recipients,
+    sync_object_status,
+    visible_objects,
+)
 
 
 @login_required
@@ -19,6 +25,32 @@ def shared_with_me(request):
     return render(
         request,
         "sharing/shared_with_me.html",
+        {"objects": objects},
+    )
+
+
+@login_required
+def sent_shares(request):
+    objects = list(
+        ResearchObject.objects.active()
+        .filter(owner=request.user)
+        .filter(
+            Q(direct_shares__isnull=False)
+            | Q(is_shared_with_project=True, project__isnull=False)
+        )
+        .select_related("project", "project__owner")
+        .prefetch_related(
+            "tags",
+            "direct_shares__user",
+            "project__memberships__user",
+        )
+        .distinct()
+    )
+    for obj in objects:
+        obj.access_recipients = object_access_recipients(obj)
+    return render(
+        request,
+        "sharing/sent_shares.html",
         {"objects": objects},
     )
 

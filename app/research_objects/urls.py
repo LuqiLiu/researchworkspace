@@ -18,9 +18,20 @@ urlpatterns = [
     path("<int:pk>/delete/", views.object_delete, name="delete"),
     path("<int:pk>/export/", views.object_export, name="export"),
     path("<int:pk>/attachments/", views.attachment_upload, name="attachment_upload"),
+    path("<int:pk>/images/", views.image_upload, name="image_upload"),
     path(
         "attachments/<int:pk>/download/",
         views.attachment_download,
         name="attachment_download",
+    ),
+    path(
+        "attachments/<int:pk>/inline/",
+        views.attachment_inline,
+        name="attachment_inline",
+    ),
+    path(
+        "attachments/<int:pk>/delete/",
+        views.attachment_delete,
+        name="attachment_delete",
     ),
 ]

@@ -7,10 +7,50 @@ from django.utils.html import strip_tags
 
 ALLOWED_TAGS = [
     "a", "blockquote", "br", "code", "del", "em", "h1", "h2", "h3",
-    "h4", "h5", "h6", "hr", "li", "ol", "p", "pre", "strong", "table",
+    "h4", "h5", "h6", "hr", "img", "li", "ol", "p", "pre", "strong", "table",
     "tbody", "td", "th", "thead", "tr", "ul",
 ]
-ALLOWED_ATTRIBUTES = {"a": ["href", "title", "rel"]}
+INLINE_IMAGE_PATH = re.compile(r"^/workspace/attachments/\d+/inline/$")
+SAFE_IMAGE_TYPES = {
+    "image/gif": (b"GIF87a", b"GIF89a"),
+    "image/jpeg": (b"\xff\xd8\xff",),
+    "image/png": (b"\x89PNG\r\n\x1a\n",),
+}
+
+
+def _allow_image_attribute(tag, name, value):
+    if name in {"alt", "title"}:
+        return True
+    return name == "src" and bool(INLINE_IMAGE_PATH.fullmatch(value))
+
+
+ALLOWED_ATTRIBUTES = {
+    "a": ["href", "title", "rel"],
+    "img": _allow_image_attribute,
+}
+
+
+def detect_safe_image_content_type(file_object):
+    """Return a browser-safe raster MIME type without trusting client metadata."""
+    position = file_object.tell()
+    try:
+        header = file_object.read(16)
+    finally:
+        file_object.seek(position)
+    for content_type, signatures in SAFE_IMAGE_TYPES.items():
+        if any(header.startswith(signature) for signature in signatures):
+            return content_type
+    if len(header) >= 12 and header.startswith(b"RIFF") and header[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+def attachment_image_content_type(attachment):
+    try:
+        with attachment.file.open("rb") as source:
+            return detect_safe_image_content_type(source)
+    except (FileNotFoundError, OSError, ValueError):
+        return None
 
 
 def render_markdown(value):

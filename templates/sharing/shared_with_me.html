@@ -3,6 +3,10 @@
 {% block content %}
 <main>
     <div class="page-heading"><p class="kicker">Selective collaboration</p><h1>分享给我的</h1><p>来自成员或研究项目的明确授权内容。</p></div>
+    <nav class="share-tabs" aria-label="分享视图">
+        <a class="active" href="{% url 'sharing:shared_with_me' %}" aria-current="page">分享给我的</a>
+        <a href="{% url 'sharing:sent_shares' %}">我发出的分享</a>
+    </nav>
     <section class="object-list">
         {% for object in objects %}{% include "components/object_card.html" with object=object show_owner=True %}
         {% empty %}<div class="panel empty"><p class="kicker">Quiet for now</p><h2>目前没有共享内容</h2><p>别人明确分享给你的内容会出现在这里。</p></div>{% endfor %}

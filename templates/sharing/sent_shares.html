@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}我发出的分享 · Research Workspace Lite{% endblock %}
+{% block content %}
+<main>
+    <div class="page-heading">
+        <p class="kicker">Access overview</p>
+        <h1>我发出的分享</h1>
+        <p>集中查看每项研究内容具体分享给了谁，以及对方的实际权限和附件访问范围。</p>
+    </div>
+    <nav class="share-tabs" aria-label="分享视图">
+        <a href="{% url 'sharing:shared_with_me' %}">分享给我的</a>
+        <a class="active" href="{% url 'sharing:sent_shares' %}" aria-current="page">我发出的分享</a>
+    </nav>
+    <section class="sent-share-list">
+        {% for object in objects %}
+            <article class="card sent-share-card">
+                <header class="sent-share-heading">
+                    <div>
+                        <p class="kicker">{{ object.get_object_type_display }} · {{ object.updated_at|date:"Y-m-d" }}</p>
+                        <h2><a href="{% url 'research_objects:detail' object.pk %}">{{ object.title }}</a></h2>
+                    </div>
+                    <span class="recipient-count">{{ object.access_recipients|length }} 人可访问</span>
+                </header>
+                <div class="recipient-list">
+                    {% for recipient in object.access_recipients %}
+                        <div class="recipient-row">
+                            <span class="avatar recipient-avatar">{{ recipient.user.username|first|upper }}</span>
+                            <div class="recipient-identity">
+                                <strong>{{ recipient.user.profile.display_name|default:recipient.user.get_username }}</strong>
+                                <span>@{{ recipient.user.get_username }}</span>
+                            </div>
+                            <span class="permission-pill">{{ recipient.permission_label }}</span>
+                            <span class="access-source">{{ recipient.sources|join:" + " }}</span>
+                            <span class="attachment-state {% if recipient.include_attachments %}allowed{% endif %}">{% if recipient.include_attachments %}可查看附件{% else %}仅正文{% endif %}</span>
+                        </div>
+                    {% empty %}<p class="meta">当前没有其他成员可访问。</p>{% endfor %}
+                </div>
+                <footer><a href="{% url 'research_objects:detail' object.pk %}">管理该内容的分享权限 →</a></footer>
+            </article>
+        {% empty %}
+            <div class="panel empty">
+                <p class="kicker">Private by default</p>
+                <h2>尚未发出分享</h2>
+                <p>你直接分享给成员或启用项目共享后，实际访问成员会出现在这里。</p>
+            </div>
+        {% endfor %}
+    </section>
+</main>
+{% endblock %}
