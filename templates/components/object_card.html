@@ -4,7 +4,7 @@
     </span>
     <div>
         <div class="card-topline">
-            <span>{{ object.get_object_type_display }}</span><span>·</span><span class="status-dot"></span><span>{{ object.get_status_display }}</span>
+            <span>{{ object.get_object_type_display }}</span><span>·</span><span class="status-dot"></span><span>{% if object.is_shared_with_team %}团队共享{% else %}{{ object.get_status_display }}{% endif %}</span>
             {% if show_owner %}<span>·</span><span>{{ object.owner.get_username }}</span>{% endif %}
         </div>
         <h2><a href="{% url 'research_objects:detail' object.pk %}">{{ object.title }}</a></h2>

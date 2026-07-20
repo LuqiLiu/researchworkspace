@@ -40,6 +40,12 @@ from .services import (
     visible_objects,
 )
 
+TEAM_SHARED_DEFAULT_TYPES = {
+    ResearchObject.ObjectType.PAPER,
+    ResearchObject.ObjectType.WRITING,
+    ResearchObject.ObjectType.RESOURCE,
+}
+
 
 def _owned_object_or_404(user, pk):
     return get_object_or_404(
@@ -120,6 +126,8 @@ def object_list(request):
 @require_http_methods(["GET", "POST"])
 def object_create(request):
     object_type = request.GET.get("type", ResearchObject.ObjectType.NOTE)
+    if object_type not in ResearchObject.ObjectType.values:
+        object_type = ResearchObject.ObjectType.NOTE
     templates = {
         ResearchObject.ObjectType.IDEA: "## 想法描述\n\n\n## 相关依据\n\n\n## 下一步验证\n\n",
         ResearchObject.ObjectType.EXPERIMENT: "## 实验目的\n\n\n## 代码与配置\n\n\n## 启动命令\n\n```bash\n\n```\n\n## 结果位置\n\n\n## 关键结果\n\n\n## 结论与下一步\n\n",
@@ -129,6 +137,7 @@ def object_create(request):
     initial = {
         "object_type": object_type,
         "content_markdown": templates.get(object_type, ""),
+        "is_shared_with_team": object_type in TEAM_SHARED_DEFAULT_TYPES,
     }
     form = ResearchObjectForm(
         request.POST or None,
@@ -137,7 +146,10 @@ def object_create(request):
     )
     if request.method == "POST" and form.is_valid():
         obj = form.save()
-        messages.success(request, "内容已创建，当前仅你自己可见。")
+        if obj.is_shared_with_team:
+            messages.success(request, "内容已创建，并已加入团队知识库。")
+        else:
+            messages.success(request, "内容已创建，当前仅你自己可见。")
         return redirect("research_objects:detail", pk=obj.pk)
     return render(
         request,

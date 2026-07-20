@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}团队知识库 · Research Workspace Lite{% endblock %}
+{% block content %}
+<main>
+    <section class="community-hero">
+        <div>
+            <p class="kicker">Team research commons</p>
+            <h1>团队知识库</h1>
+            <p>汇集团队主动共享的文献笔记、写作素材与研究资源；所有内容仅对已登录成员开放。</p>
+        </div>
+        <a class="button" href="{% url 'research_objects:create' %}">＋ 新建研究记录</a>
+    </section>
+
+    <form class="panel community-filter" method="get">
+        <input type="search" name="q" value="{{ request.GET.q }}" placeholder="搜索标题、正文、标签、项目或评论" aria-label="搜索团队知识库">
+        <select name="type" aria-label="内容类型">
+            <option value="">全部类型</option>
+            {% for value, label in object_types %}<option value="{{ value }}" {% if request.GET.type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <select name="project" aria-label="研究项目">
+            <option value="">全部项目</option>
+            {% for project in projects %}<option value="{{ project.pk }}" {% if request.GET.project == project.pk|stringformat:"s" %}selected{% endif %}>{{ project.name }}</option>{% endfor %}
+        </select>
+        <select name="author" aria-label="内容作者">
+            <option value="">全部作者</option>
+            {% for author in authors %}<option value="{{ author.pk }}" {% if request.GET.author == author.pk|stringformat:"s" %}selected{% endif %}>{{ author.profile.display_name|default:author.get_username }}</option>{% endfor %}
+        </select>
+        <select name="tag" aria-label="内容标签">
+            <option value="">全部标签</option>
+            {% for tag in tags %}<option value="{{ tag }}" {% if request.GET.tag == tag %}selected{% endif %}># {{ tag }}</option>{% endfor %}
+        </select>
+        <button class="secondary" type="submit">筛选</button>
+        {% if request.GET %}<a class="filter-reset" href="{% url 'community:library' %}">清除筛选</a>{% endif %}
+    </form>
+
+    <div class="library-summary">
+        <span>按最近更新排序</span>
+        <strong>{{ page.paginator.count }} 条共享记录</strong>
+    </div>
+    <section class="object-list">
+        {% for object in page %}{% include "components/object_card.html" with object=object show_owner=True %}
+        {% empty %}
+            <div class="panel empty">
+                <p class="kicker">Team knowledge starts here</p>
+                <h2>还没有符合条件的共享内容</h2>
+                <p>作者可以在创建或编辑记录时启用“团队知识库可见”。</p>
+            </div>
+        {% endfor %}
+    </section>
+
+    {% if page.paginator.num_pages > 1 %}
+        <nav class="pagination" aria-label="分页">
+            {% if page.has_previous %}<a href="?{% if query_without_page %}{{ query_without_page }}&amp;{% endif %}page={{ page.previous_page_number }}">上一页</a>{% endif %}
+            <span>第 {{ page.number }} / {{ page.paginator.num_pages }} 页</span>
+            {% if page.has_next %}<a href="?{% if query_without_page %}{{ query_without_page }}&amp;{% endif %}page={{ page.next_page_number }}">下一页</a>{% endif %}
+        </nav>
+    {% endif %}
+</main>
+{% endblock %}

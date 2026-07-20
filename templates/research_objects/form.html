@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}{{ heading }} · Research Workspace Lite{% endblock %}
-{% block extra_head %}{% if object %}<script src="{% static 'js/research-object-editor.js' %}" defer></script><script src="{% static 'js/research-image-upload.js' %}" defer></script>{% endif %}{% endblock %}
+{% block extra_head %}<script src="{% static 'js/research-visibility-controls.js' %}" defer></script>{% if object %}<script src="{% static 'js/research-object-editor.js' %}" defer></script><script src="{% static 'js/research-image-upload.js' %}" defer></script>{% endif %}{% endblock %}
 {% block content %}
 <main class="content-narrow">
-    <div class="page-heading"><p class="kicker">Research editor</p><h1>{{ heading }}</h1><p>以 Markdown 保存源文本；新内容默认仅你自己可见。</p></div>
-    <form method="post" class="panel form-panel"{% if object %} data-research-editor data-autosave-url="{% url 'research_objects:autosave' object.pk %}"{% endif %}>
+    <div class="page-heading"><p class="kicker">Research editor</p><h1>{{ heading }}</h1><p>以 Markdown 保存源文本，并明确选择私人、团队或项目协作范围。</p></div>
+    <form method="post" class="panel form-panel"{% if object %} data-research-editor data-autosave-url="{% url 'research_objects:autosave' object.pk %}"{% else %} data-new-research-object{% endif %}>
         {% csrf_token %}
         <div class="form-section"><span class="section-index">01</span><div><h2>研究记录</h2><p class="muted">先记下来，再逐步完善。</p></div></div>
         {{ form.as_p }}

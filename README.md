@@ -1,8 +1,8 @@
-# Research Workspace Lite V1.1
+# Research Workspace Lite V1.2
 
-Private, lightweight research workspace for collecting papers, developing ideas,
-recording experiments, connecting research evidence, and publishing selected
-work. Stages 0–5 are implemented on one small deployment stack.
+Lightweight research workspace for individuals and small teams: collect papers,
+develop ideas, record experiments, connect research evidence, share selected
+knowledge internally, and publish deliberate public snapshots.
 
 ## Stack
 
@@ -89,6 +89,26 @@ Docker uses the readiness endpoint for the `web` service health check.
 Administrators do not automatically gain application-level access to private
 research objects. Private content is also intentionally absent from Django
 admin.
+
+## V1.2 team knowledge library
+
+- A focused team knowledge homepage at `/community/`, with full-text, type,
+  project, author, and tag filters
+- Papers, writing materials, and resource indexes default to team sharing when
+  they are newly created; notes, ideas, experiments, and issues remain private
+  by default
+- Every visibility choice can be changed explicitly before saving or later in
+  the editor
+- Team members can read and comment on team-shared records, while editing still
+  requires ownership or an existing editor permission
+- Attachments remain unavailable unless the owner separately enables team
+  attachment access
+- Existing records remain private after upgrade; the migration never converts
+  historical content into team-shared content
+- No likes, follows, leaderboards, or recommendation algorithms
+
+See [docs/v1.2-release-notes.md](docs/v1.2-release-notes.md) for the complete
+permission and upgrade notes.
 
 ## Stage 3 research workflow
 

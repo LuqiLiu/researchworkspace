@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 
 from app.projects.models import ProjectMember
@@ -17,7 +18,7 @@ PERMISSION_LABEL = {
 }
 
 
-def object_access_recipients(obj):
+def object_access_recipients(obj, team_users=None):
     """List effective recipients, merging direct and project access routes."""
     recipients = {}
 
@@ -67,6 +68,17 @@ def object_access_recipients(obj):
                 obj.share_project_attachments,
             )
 
+    if obj.is_shared_with_team:
+        if team_users is None:
+            team_users = get_user_model().objects.filter(is_active=True)
+        for user in team_users:
+            add_recipient(
+                user,
+                20,
+                "团队知识库",
+                obj.share_team_attachments,
+            )
+
     result = []
     for recipient in recipients.values():
         recipient["permission_label"] = PERMISSION_LABEL[recipient["rank"]]
@@ -77,12 +89,13 @@ def object_access_recipients(obj):
 def visible_objects(user):
     from app.research_objects.models import ResearchObject
 
-    if not user.is_authenticated:
+    if not user.is_authenticated or not user.is_active:
         return ResearchObject.objects.none()
     return (
         ResearchObject.objects.active()
         .filter(
             Q(owner=user)
+            | Q(is_shared_with_team=True)
             | Q(direct_shares__user=user)
             | Q(
                 is_shared_with_project=True,
@@ -102,7 +115,12 @@ def permission_rank(user, obj):
     if obj.owner_id == user.id:
         return 100
 
+    if not user.is_active:
+        return 0
+
     rank = 0
+    if obj.is_shared_with_team:
+        rank = max(rank, 20)
     direct_permission = (
         ObjectShare.objects.filter(research_object=obj, user=user)
         .values_list("permission", flat=True)
@@ -148,6 +166,8 @@ def can_access_attachment(user, attachment):
         return False
     if obj.owner_id == user.id:
         return True
+    if obj.is_shared_with_team and obj.share_team_attachments and user.is_active:
+        return True
     if ObjectShare.objects.filter(
         research_object=obj,
         user=user,
@@ -172,9 +192,11 @@ def can_access_attachment(user, attachment):
 def sync_object_status(obj):
     from app.research_objects.models import ResearchObject
 
-    is_shared = obj.is_shared_with_project or ObjectShare.objects.filter(
-        research_object=obj
-    ).exists()
+    is_shared = (
+        obj.is_shared_with_team
+        or obj.is_shared_with_project
+        or ObjectShare.objects.filter(research_object=obj).exists()
+    )
     status = (
         ResearchObject.Status.SHARED
         if is_shared

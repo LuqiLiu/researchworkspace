@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "research-workspace-lite"
-version = "1.1.1"
-description = "Lightweight private research workspace"
+version = "1.2.0"
+description = "Lightweight research workspace for individuals and small teams"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

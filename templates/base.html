@@ -32,6 +32,9 @@
                 <a class="{% if request.resolver_match.namespace == 'research_objects' and request.resolver_match.url_name != 'search' %}active{% endif %}" href="{% url 'research_objects:list' %}">
                     <span class="nav-icon">▤</span><span>我的内容</span>
                 </a>
+                <a class="{% if request.resolver_match.namespace == 'community' %}active{% endif %}" href="{% url 'community:library' %}">
+                    <span class="nav-icon">共</span><span>团队知识库</span>
+                </a>
                 <a class="{% if request.resolver_match.namespace == 'sharing' %}active{% endif %}" href="{% url 'sharing:sent_shares' %}">
                     <span class="nav-icon">⇄</span><span>协作分享</span>
                 </a>

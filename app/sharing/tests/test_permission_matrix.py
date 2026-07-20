@@ -449,3 +449,36 @@ class PermissionMatrixTests(TestCase):
         response = self._get_as(self.owner, reverse("sharing:sent_shares"))
 
         self.assertNotContains(response, "Another owner's private share")
+
+    def test_outgoing_overview_lists_active_team_recipients(self):
+        inactive = get_user_model().objects.create_user(
+            "inactive-team-user",
+            password="password",
+            is_active=False,
+        )
+        team_object = ResearchObject.objects.create(
+            owner=self.owner,
+            title="Team knowledge note",
+            content_markdown="shared with the small team",
+            is_shared_with_team=True,
+        )
+
+        response = self._get_as(self.owner, reverse("sharing:sent_shares"))
+        listed = next(
+            obj
+            for obj in response.context["objects"]
+            if obj.pk == team_object.pk
+        )
+        usernames = {
+            recipient["user"].get_username()
+            for recipient in listed.access_recipients
+        }
+
+        self.assertIn(self.stranger.get_username(), usernames)
+        self.assertNotIn(inactive.get_username(), usernames)
+        self.assertTrue(
+            all(
+                "团队知识库" in recipient["sources"]
+                for recipient in listed.access_recipients
+            )
+        )

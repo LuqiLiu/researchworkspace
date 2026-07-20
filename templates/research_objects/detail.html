@@ -26,6 +26,9 @@
             <section class="card">
                 <h2>状态</h2>
                 <p>{{ object.get_status_display }}</p>
+                {% if object.is_shared_with_team %}
+                    <p><span class="publication-badge published">团队知识库可见</span>{% if object.share_team_attachments %} · 含附件{% else %} · 仅正文{% endif %}</p>
+                {% endif %}
                 {% if publication_snapshot %}
                     <p><span class="publication-badge {% if publication_snapshot.is_published %}published{% endif %}">{% if publication_snapshot.is_published %}已发布快照{% else %}公开草稿{% endif %}</span></p>
                 {% endif %}

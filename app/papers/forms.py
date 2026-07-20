@@ -28,6 +28,17 @@ class PaperImportForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={"rows": 3}),
     )
+    is_shared_with_team = forms.BooleanField(
+        label="加入团队知识库",
+        required=False,
+        initial=True,
+        help_text="团队成员可以查看和评论；只有你可以编辑。",
+    )
+    share_team_attachments = forms.BooleanField(
+        label="团队成员也可访问 PDF",
+        required=False,
+        initial=False,
+    )
 
     def clean_pdf(self):
         upload = self.cleaned_data.get("pdf")
@@ -55,6 +66,13 @@ class PaperImportForm(forms.Form):
             for name in ("doi", "external_url", "pdf", "title")
         ):
             raise forms.ValidationError("请至少提供 DOI、论文网页、PDF 或标题。")
+        if cleaned_data.get("share_team_attachments") and not cleaned_data.get(
+            "is_shared_with_team"
+        ):
+            self.add_error(
+                "share_team_attachments",
+                "必须先将文献加入团队知识库。",
+            )
         return cleaned_data
 
 

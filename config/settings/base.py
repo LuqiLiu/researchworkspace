@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "app.accounts.apps.AccountsConfig",
     "app.audit.apps.AuditConfig",
     "app.comments.apps.CommentsConfig",
+    "app.community.apps.CommunityConfig",
     "app.core.apps.CoreConfig",
     "app.projects.apps.ProjectsConfig",
     "app.papers.apps.PapersConfig",

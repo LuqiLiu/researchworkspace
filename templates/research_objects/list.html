@@ -35,7 +35,7 @@
 
     <section class="object-list">
         {% for object in objects %}{% include "components/object_card.html" with object=object %}
-        {% empty %}<div class="panel empty"><p class="kicker">No records yet</p><h2>从一条想法或一篇文献开始</h2><p>你的所有新内容默认只对自己可见。</p></div>{% endfor %}
+        {% empty %}<div class="panel empty"><p class="kicker">No records yet</p><h2>从一条想法或一篇文献开始</h2><p>想法与实验默认私人，文献与资源可按规则进入团队知识库。</p></div>{% endfor %}
     </section>
 </main>
 {% endblock %}

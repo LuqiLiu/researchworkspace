@@ -27,6 +27,8 @@ class ResearchObjectForm(forms.ModelForm):
             "object_type",
             "title",
             "content_markdown",
+            "is_shared_with_team",
+            "share_team_attachments",
             "project",
             "is_shared_with_project",
             "share_project_attachments",
@@ -35,9 +37,15 @@ class ResearchObjectForm(forms.ModelForm):
             "object_type": "类型",
             "title": "标题",
             "content_markdown": "正文（Markdown）",
+            "is_shared_with_team": "团队知识库可见",
+            "share_team_attachments": "团队成员也可访问附件",
             "project": "关联项目",
             "is_shared_with_project": "项目成员可访问",
             "share_project_attachments": "项目成员也可访问附件",
+        }
+        help_texts = {
+            "is_shared_with_team": "所有有效团队账号都可查看和评论，只有你或明确授权的编辑者可修改。",
+            "share_team_attachments": "单独开放上传文件和正文中的实验图片。",
         }
 
     def __init__(self, *args, owner=None, can_manage=True, **kwargs):
@@ -55,6 +63,8 @@ class ResearchObjectForm(forms.ModelForm):
         if not can_manage:
             for field_name in (
                 "tag_names",
+                "is_shared_with_team",
+                "share_team_attachments",
                 "project",
                 "is_shared_with_project",
                 "share_project_attachments",
@@ -67,6 +77,8 @@ class ResearchObjectForm(forms.ModelForm):
             project = cleaned_data.get("project")
             shared = cleaned_data.get("is_shared_with_project")
             share_attachments = cleaned_data.get("share_project_attachments")
+            team_shared = cleaned_data.get("is_shared_with_team")
+            team_attachments = cleaned_data.get("share_team_attachments")
             if shared and project is None:
                 self.add_error(
                     "is_shared_with_project",
@@ -76,6 +88,11 @@ class ResearchObjectForm(forms.ModelForm):
                 self.add_error(
                     "share_project_attachments",
                     "必须先允许项目成员访问正文。",
+                )
+            if team_attachments and not team_shared:
+                self.add_error(
+                    "share_team_attachments",
+                    "必须先允许团队成员访问正文。",
                 )
         return cleaned_data
 

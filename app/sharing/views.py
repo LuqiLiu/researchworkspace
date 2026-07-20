@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import Http404
@@ -21,7 +22,19 @@ from .services import (
 
 @login_required
 def shared_with_me(request):
-    objects = visible_objects(request.user).exclude(owner=request.user)
+    objects = (
+        visible_objects(request.user)
+        .exclude(owner=request.user)
+        .filter(
+            Q(direct_shares__user=request.user)
+            | Q(
+                is_shared_with_project=True,
+                project__memberships__user=request.user,
+            )
+            | Q(is_shared_with_project=True, project__owner=request.user)
+        )
+        .distinct()
+    )
     return render(
         request,
         "sharing/shared_with_me.html",
@@ -36,6 +49,7 @@ def sent_shares(request):
         .filter(owner=request.user)
         .filter(
             Q(direct_shares__isnull=False)
+            | Q(is_shared_with_team=True)
             | Q(is_shared_with_project=True, project__isnull=False)
         )
         .select_related("project", "project__owner")
@@ -46,8 +60,11 @@ def sent_shares(request):
         )
         .distinct()
     )
+    team_users = list(
+        get_user_model().objects.filter(is_active=True).select_related("profile")
+    )
     for obj in objects:
-        obj.access_recipients = object_access_recipients(obj)
+        obj.access_recipients = object_access_recipients(obj, team_users=team_users)
     return render(
         request,
         "sharing/sent_shares.html",

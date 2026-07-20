@@ -1,5 +1,7 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}导入文献 · Research Workspace Lite{% endblock %}
+{% block extra_head %}<script src="{% static 'js/research-visibility-controls.js' %}" defer></script>{% endblock %}
 {% block content %}
 <main class="content-narrow">
     <div class="page-heading">

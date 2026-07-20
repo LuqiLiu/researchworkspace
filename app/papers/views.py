@@ -41,7 +41,10 @@ def paper_import(request):
                 "文献已保存，但外部题录服务暂不可用；你可以稍后手动完善信息。",
             )
         else:
-            messages.success(request, "文献已导入并保持私有。")
+            if obj.is_shared_with_team:
+                messages.success(request, "文献已导入并加入团队知识库。")
+            else:
+                messages.success(request, "文献已导入并保持私有。")
         return redirect("research_objects:detail", pk=obj.pk)
     return render(request, "papers/import.html", {"form": form})
 

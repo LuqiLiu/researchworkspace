@@ -272,6 +272,11 @@ def import_paper(*, owner, cleaned_data):
         title=title,
         content_markdown=cleaned_data.get("personal_note") or "",
         metadata_json=metadata,
+        is_shared_with_team=cleaned_data.get("is_shared_with_team", True),
+        share_team_attachments=cleaned_data.get(
+            "share_team_attachments",
+            False,
+        ),
     )
     if upload:
         reserve_storage(owner, len(pdf_bytes))

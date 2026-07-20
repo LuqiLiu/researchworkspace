@@ -81,6 +81,8 @@ class ResearchObject(models.Model):
     )
     is_shared_with_project = models.BooleanField(default=False)
     share_project_attachments = models.BooleanField(default=False)
+    is_shared_with_team = models.BooleanField(default=False)
+    share_team_attachments = models.BooleanField(default=False)
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -118,6 +120,10 @@ class ResearchObject(models.Model):
         if not self.is_shared_with_project:
             self.share_project_attachments = False
         elif self.project_id:
+            self.status = self.Status.SHARED
+        if not self.is_shared_with_team:
+            self.share_team_attachments = False
+        else:
             self.status = self.Status.SHARED
         self.content_plain_text = markdown_to_plain_text(self.content_markdown)
         self.search_text = compose_search_text(self)
