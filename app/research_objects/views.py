@@ -99,19 +99,6 @@ def _image_markdown(attachment):
     return f"![{alt_text}]({inline_url})"
 
 
-def _enable_autosave(form, obj):
-    autosave_url = reverse("research_objects:autosave", args=[obj.pk])
-    attributes = {
-        "hx-post": autosave_url,
-        "hx-trigger": "keyup changed delay:1200ms",
-        "hx-include": "closest form",
-        "hx-target": "#autosave-status",
-        "hx-swap": "innerHTML",
-    }
-    form.fields["title"].widget.attrs.update(attributes)
-    form.fields["content_markdown"].widget.attrs.update(attributes)
-
-
 @login_required
 def object_list(request):
     objects = visible_objects(request.user).filter(owner=request.user)
@@ -261,14 +248,13 @@ def object_edit(request, pk):
         owner=obj.owner,
         can_manage=may_manage,
     )
-    _enable_autosave(form, obj)
     if request.method == "POST" and form.is_valid():
         try:
             form.save()
         except ObjectEditConflict:
             form.add_error(
                 None,
-                "此内容已在其他页面更新。你的草稿仍保留在当前页面，请刷新后合并再保存。",
+                "此内容已在其他页面更新。你的草稿仍保留在当前页面；请先复制草稿，再决定是否刷新并合并。",
             )
             image_attachments, _ = _split_image_attachments(
                 _visible_attachments(request.user, obj)
@@ -316,15 +302,23 @@ def object_autosave(request, pk):
         can_manage=can_manage(request.user, obj),
     )
     if not form.is_valid():
-        return HttpResponse("自动保存失败，请检查必填字段。", status=422)
+        return JsonResponse(
+            {"message": "自动保存失败，请检查必填字段。"},
+            status=422,
+        )
     try:
-        form.save()
+        saved = form.save()
     except ObjectEditConflict:
-        return HttpResponse(
-            "自动保存已暂停：服务器上存在更新版本，请刷新后合并。",
+        return JsonResponse(
+            {"message": "服务器上存在更新版本，自动保存已暂停。"},
             status=409,
         )
-    return HttpResponse("已自动保存")
+    return JsonResponse(
+        {
+            "message": "已自动保存",
+            "version": saved.version,
+        }
+    )
 
 
 @login_required

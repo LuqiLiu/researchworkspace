@@ -93,6 +93,7 @@ class PrivateWorkspaceTests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["version"], self.obj.version + 1)
         self.obj.refresh_from_db()
         self.assertEqual(self.obj.title, "Autosaved")
         self.assertEqual(self.obj.tags.get().name, "optimization")
@@ -126,6 +127,41 @@ class PrivateWorkspaceTests(TestCase):
         self.assertEqual(self.obj.title, "First save")
         self.assertEqual(self.obj.content_markdown, "newer body")
         self.assertEqual(self.obj.version, stale_version + 1)
+
+    def test_manual_save_uses_version_returned_by_autosave(self):
+        self.client.force_login(self.alice)
+        initial_version = self.obj.version
+        autosave = self.client.post(
+            reverse("research_objects:autosave", args=[self.obj.pk]),
+            {
+                "object_type": ResearchObject.ObjectType.PAPER,
+                "title": "Autosaved title",
+                "content_markdown": "autosaved draft",
+                "tag_names": "",
+                "object_version": initial_version,
+            },
+        )
+        returned_version = autosave.json()["version"]
+
+        response = self.client.post(
+            reverse("research_objects:edit", args=[self.obj.pk]),
+            {
+                "object_type": ResearchObject.ObjectType.PAPER,
+                "title": "Final title",
+                "content_markdown": "latest text from the editor",
+                "tag_names": "",
+                "object_version": returned_version,
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("research_objects:detail", args=[self.obj.pk]),
+        )
+        self.obj.refresh_from_db()
+        self.assertEqual(self.obj.title, "Final title")
+        self.assertEqual(self.obj.content_markdown, "latest text from the editor")
+        self.assertEqual(self.obj.version, initial_version + 2)
 
     def test_search_does_not_leak_other_users_content(self):
         self.client.force_login(self.bob)
@@ -387,6 +423,9 @@ class PrivateWorkspaceTests(TestCase):
         )
         self.assertContains(response, "上传并插入正文")
         self.assertContains(response, "research-image-upload.js")
+        self.assertContains(response, "research-object-editor.js")
+        self.assertContains(response, "data-autosave-url")
+        self.assertNotContains(response, "hx-trigger")
 
     def test_type_template_is_prefilled(self):
         self.client.force_login(self.alice)

@@ -205,6 +205,10 @@ textarea { min-height: 300px; resize: vertical; font-family: var(--mono); font-s
 .upload-status { min-height: 24px; margin: 12px 0; }
 .upload-status.error { color: var(--red); }
 .upload-status.success { color: var(--teal); }
+#autosave-status { min-height: 20px; }
+#autosave-status.success { color: var(--teal); }
+#autosave-status.error { color: var(--red); font-weight: 650; }
+#autosave-status.saving { color: var(--amber); }
 .editor-image-library { margin-top: 12px; }
 .editor-image-library .image-card figcaption { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
 .share-tabs { display: flex; gap: 8px; margin: -8px 0 24px; border-bottom: 1px solid var(--line); }
